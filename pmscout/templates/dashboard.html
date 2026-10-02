@@ -1,0 +1,742 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Polymarket Wallet Scout</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --surface-2: #f3f2ee; --chip: #ecebe6;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --s1: #2a78d6; --s1-wash: rgba(42,120,214,0.10); --s1-track: #cde2fb; --s2: #eb6834; --neg: #e34948;
+  --good-text: #006300; --bad-text: #c43333; --link: #1c5cab;
+  --warn-bg: #fff3d1; --warn-ink: #5a4200; --warn-line: #fab219;
+  --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222220; --chip: #2a2a28;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --s1: #3987e5; --s1-wash: rgba(57,135,229,0.14); --s1-track: #1d3556; --s2: #d95926; --neg: #e66767;
+    --good-text: #2fbf2f; --bad-text: #f07a7a; --link: #86b6ef;
+    --warn-bg: #33290e; --warn-ink: #fad27a; --warn-line: #c98500;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --surface-2: #222220; --chip: #2a2a28;
+  --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --s1: #3987e5; --s1-wash: rgba(57,135,229,0.14); --s1-track: #1d3556; --s2: #d95926; --neg: #e66767;
+  --good-text: #2fbf2f; --bad-text: #f07a7a; --link: #86b6ef;
+  --warn-bg: #33290e; --warn-ink: #fad27a; --warn-line: #c98500;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button, input, select { font: inherit; color: inherit; }
+.wrap { max-width: 1320px; margin: 0 auto; padding: 0 24px; }
+header.top { padding: 28px 0 8px; display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; }
+h1 { font-size: 22px; line-height: 1.2; margin: 0 0 4px; font-weight: 650; letter-spacing: -0.01em; }
+h2 { font-size: 16px; margin: 0 0 4px; font-weight: 600; }
+h3 { font-size: 13px; margin: 0 0 8px; font-weight: 600; color: var(--ink-2); }
+.sub { color: var(--ink-2); margin: 0; }
+.muted { color: var(--muted); }
+.btn { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: var(--surface-2); }
+.banner { margin: 12px 0 4px; padding: 10px 14px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-ink); border-left: 4px solid var(--warn-line); }
+.banner b { font-weight: 650; }
+.tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin: 16px 0 8px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.tile .lbl { color: var(--ink-2); font-size: 12.5px; }
+.tile .val { font-size: 24px; font-weight: 620; margin-top: 2px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .note { color: var(--muted); font-size: 12px; margin-top: 2px; }
+.tile.hero .val { font-size: 30px; }
+nav.tabs { display: flex; gap: 4px; margin: 18px 0 0; border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+nav.tabs::-webkit-scrollbar { display: none; }
+nav.tabs button { background: none; border: 0; padding: 10px 12px; cursor: pointer; color: var(--ink-2); border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+nav.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--s1); font-weight: 600; }
+section.panel { display: none; padding: 18px 0 48px; }
+section.panel.active { display: block; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.intro { color: var(--ink-2); max-width: 900px; margin: 0 0 14px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 0 0 12px; }
+.filters input[type=search], .filters select, .filters input[type=number] { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; }
+.filters input[type=search] { width: 220px; max-width: 100%; }
+.filters input[type=number] { width: 72px; }
+.filters label { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); }
+.filters .count { margin-left: auto; color: var(--muted); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; }
+th, td { padding: 8px 9px; text-align: left; border-bottom: 1px solid var(--grid); vertical-align: middle; }
+th { font-size: 12px; font-weight: 600; color: var(--ink-2); background: var(--surface); position: sticky; top: 0; z-index: 1; white-space: nowrap; user-select: none; }
+th.sortable { cursor: pointer; }
+th.sortable:hover { color: var(--ink); }
+th .arrow { color: var(--s1); margin-left: 2px; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr.click { cursor: pointer; }
+tbody tr.click:hover td { background: var(--surface-2); }
+.wcell { min-width: 150px; max-width: 210px; }
+.wname { font-weight: 560; }
+.waddr { color: var(--muted); font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--chip); color: var(--ink-2); font-size: 12px; white-space: nowrap; }
+.chip.tag { background: transparent; border: 1px solid var(--border); margin: 3px 4px 0 0; font-size: 11px; padding: 0 6px; }
+.pos { color: var(--good-text); }
+.neg { color: var(--bad-text); }
+.meter { display: inline-flex; align-items: center; gap: 6px; }
+.meter .track { width: 44px; height: 6px; border-radius: 3px; background: var(--s1-track); overflow: hidden; }
+.meter .fill { display: block; height: 100%; background: var(--s1); border-radius: 3px; }
+.meter .n { min-width: 22px; text-align: right; font-variant-numeric: tabular-nums; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.chart { width: 100%; position: relative; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart text { font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.chart .lbl-strong { fill: var(--ink); font-weight: 600; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--ink-2); font-size: 12px; margin: 4px 0 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.hbars { display: grid; gap: 6px; }
+.hbar { display: grid; grid-template-columns: minmax(80px, 140px) minmax(0, 1fr) 84px; gap: 10px; align-items: center; font-size: 12.5px; }
+.hbar .name { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar .bararea { position: relative; height: 14px; }
+.hbar .bar { position: absolute; top: 1px; height: 12px; background: var(--s1); }
+.hbar .bar.r { border-radius: 0 4px 4px 0; }
+.hbar .bar.l { border-radius: 4px 0 0 4px; background: var(--neg); }
+.hbar .zero { position: absolute; top: -2px; bottom: -2px; width: 1px; background: var(--axis); }
+.hbar .v { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); white-space: nowrap; }
+.tt { position: fixed; z-index: 60; pointer-events: none; background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: var(--shadow); max-width: 300px; display: none; }
+.tt b { font-weight: 600; }
+.tt .k { color: var(--ink-2); }
+.drawer-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.32); z-index: 40; display: none; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(820px, 100vw); background: var(--page); z-index: 50; overflow-y: auto; transform: translateX(100%); transition: transform .18s ease-out; box-shadow: var(--shadow); }
+.drawer.open { transform: none; }
+.drawer-bg.open { display: block; }
+.drawer .dhead { position: sticky; top: 0; background: var(--page); padding: 14px 20px 10px; border-bottom: 1px solid var(--border); z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.drawer .dinfo { padding: 14px 20px 0; }
+.drawer .dbody { padding: 16px 20px 40px; display: grid; gap: 14px; }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--grid); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.stats > div { background: var(--surface); padding: 10px 12px; min-width: 0; }
+.stats .k { color: var(--ink-2); font-size: 12px; }
+.stats .v { font-size: 16px; font-weight: 600; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stats .s { color: var(--muted); font-size: 11.5px; }
+.mini th, .mini td { padding: 6px 8px; font-size: 12.5px; }
+.mini td.t { max-width: 0; width: 100%; }
+.ellip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
+details.holders summary { cursor: pointer; color: var(--link); font-size: 12.5px; }
+details.holders ul { margin: 6px 0 0; padding-left: 18px; }
+details.holders li { margin: 2px 0; font-size: 12.5px; }
+.split { display: flex; height: 14px; border-radius: 4px; overflow: hidden; gap: 2px; margin: 8px 0 6px; }
+.split div { height: 100%; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+.leaders ol { margin: 0; padding-left: 20px; }
+.leaders li { margin: 3px 0; }
+.method { max-width: 860px; color: var(--ink-2); }
+.method h2 { color: var(--ink); margin-top: 22px; }
+.method code { background: var(--chip); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+footer { color: var(--muted); font-size: 12px; padding: 0 0 36px; }
+@media (max-width: 1080px) { .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } .grid3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) {
+  .wrap { padding: 0 16px; }
+  header.top { padding-top: 18px; }
+  .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tile.hero { grid-column: 1 / -1; }
+  .grid2, .grid3 { grid-template-columns: minmax(0, 1fr); }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filters .count { margin-left: 0; width: 100%; }
+  .drawer .dhead, .drawer .dbody, .drawer .dinfo { padding-left: 16px; padding-right: 16px; }
+  .cards { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Polymarket Wallet Scout</h1>
+      <p class="sub" id="subtitle"></p>
+    </div>
+    <button class="btn" id="themeBtn" type="button" title="Switch theme">Theme: auto</button>
+  </header>
+  <div id="banner"></div>
+  <div class="tiles" id="tiles"></div>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <section class="panel" id="p-leaderboard">
+    <div class="filters">
+      <input type="search" id="f-q" placeholder="Search name or address" aria-label="Search wallets">
+      <select id="f-style" aria-label="Style"><option value="">All styles</option></select>
+      <select id="f-cat" aria-label="Focus category"><option value="">All categories</option></select>
+      <label>Min closed <input type="number" id="f-min" min="0" value="0"></label>
+      <label><input type="checkbox" id="f-mm"> Hide market makers</label>
+      <label><input type="checkbox" id="f-hit"> Hide one-hit wallets</label>
+      <button class="btn" id="csvBtn" type="button">Download CSV</button>
+      <span class="count" id="f-count"></span>
+    </div>
+    <div class="tablewrap"><table id="lb"></table></div>
+  </section>
+
+  <section class="panel" id="p-consensus">
+    <p class="intro">Open positions held by two or more of the analysed wallets <b>on the same outcome</b>. Market makers are excluded (their inventory is not a view). Only positions worth at least $100 at prices between 2¢ and 98¢ count. <b>Conviction</b> is the dollar value weighted by each holder's consistency score. <b>Edge</b> is the current price minus the holders' average entry.</p>
+    <div class="filters">
+      <select id="c-cat" aria-label="Category"><option value="">All categories</option></select>
+      <label>Min wallets <input type="number" id="c-min" min="2" value="2"></label>
+      <span class="count" id="c-count"></span>
+    </div>
+    <div class="tablewrap"><table id="cons"></table></div>
+  </section>
+
+  <section class="panel" id="p-contested">
+    <p class="intro">Markets where top wallets hold meaningful money on <b>both</b> sides (the smaller side holds at least 20% of the combined value). Smart money disagrees here.</p>
+    <div class="cards" id="contested"></div>
+  </section>
+
+  <section class="panel" id="p-heat">
+    <p class="intro">Markets that the most analysed wallets traded during the window, with their combined buy and sell flow. Positive net flow means these wallets were net buyers.</p>
+    <div class="tablewrap"><table id="heat"></table></div>
+  </section>
+
+  <section class="panel" id="p-styles">
+    <div class="grid2">
+      <div class="card"><h2>Trading styles</h2><p class="muted" style="margin:0 0 10px">Number of wallets per primary style</p><div id="style-bars" class="hbars"></div></div>
+      <div class="card"><h2>How each style performed</h2><p class="muted" style="margin:0 0 10px">Medians across wallets of that style</p><div class="tablewrap" style="border:0"><table class="mini" id="style-table"></table></div></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+        <div><h2>Where they buy vs how often they win</h2><p class="muted" style="margin:0">Each dot is a wallet. Dot size is 90-day PnL. Click a dot to open the wallet.</p></div>
+        <select id="s-style" class="btn" aria-label="Highlight style"><option value="">Highlight: all styles</option></select>
+      </div>
+      <div class="legend"><span><i style="background:var(--s1)"></i>Profitable</span><span><i style="background:var(--neg)"></i>Unprofitable</span></div>
+      <div class="chart" id="scatter"></div>
+    </div>
+    <div class="card" style="margin-top:14px"><h2>Style definitions</h2><div id="style-defs" class="method" style="max-width:none"></div></div>
+  </section>
+
+  <section class="panel" id="p-categories">
+    <div class="card"><h2>Net realized PnL by category</h2><p class="muted" style="margin:0 0 10px">Summed across every analysed wallet over the window</p><div id="cat-bars" class="hbars"></div></div>
+    <h2 style="margin:20px 0 10px">Category leaders</h2>
+    <div class="cards leaders" id="cat-leaders"></div>
+  </section>
+
+  <section class="panel" id="p-linked">
+    <p class="intro">Wallet pairs that trade unusually similar sets of markets. <b>Overlap</b> is the Jaccard similarity of the markets they traded, ignoring markets that most top wallets touched. <b>Co-entries</b> counts buys of the same token by both wallets within two minutes of each other. A high score can mean one operator running several wallets, copy-trading, or a shared signal source. It is a lead to investigate, not proof.</p>
+    <div class="tablewrap"><table id="linked"></table></div>
+  </section>
+
+  <section class="panel" id="p-method"><div class="method" id="method"></div></section>
+
+  <footer id="footer"></footer>
+</div>
+
+<div class="drawer-bg" id="drawerBg"></div>
+<aside class="drawer" id="drawer" aria-hidden="true"></aside>
+<div class="tt" id="tt"></div>
+
+<script>
+const DATA = /*__PMSCOUT_DATA__*/null;
+(function () {
+"use strict";
+if (!DATA) { document.body.innerHTML = '<p style="padding:24px">No data embedded. Run <code>pmscout report</code>.</p>'; return; }
+
+// ------------------------------------------------------------------ utils
+const $ = (s, el) => (el || document).querySelector(s);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const isAddr = w => /^0x[0-9a-fA-F]{40}$/.test(w || "");
+const shortAddr = w => w ? w.slice(0, 6) + "…" + w.slice(-4) : "";
+const label = w => w.name || shortAddr(w.wallet);
+function compact(v) {
+  const a = Math.abs(v);
+  if (a >= 1e9) return (a / 1e9).toFixed(a >= 1e10 ? 1 : 2) + "B";
+  if (a >= 1e6) return (a / 1e6).toFixed(a >= 1e7 ? 1 : 2) + "M";
+  if (a >= 1e4) return (a / 1e3).toFixed(0) + "K";
+  if (a >= 1e3) return (a / 1e3).toFixed(1) + "K";
+  return a.toFixed(a >= 100 ? 0 : a >= 10 ? 1 : 2).replace(/\.0+$/, "");
+}
+const usd = v => v == null ? "–" : (v < 0 ? "−$" : "$") + compact(v);
+const sUsd = v => v == null ? "–" : (v > 0 ? "+$" : v < 0 ? "−$" : "$") + compact(v);
+const cls = v => v > 0 ? "pos" : v < 0 ? "neg" : "";
+const pnlHtml = v => `<span class="${cls(v)}">${sUsd(v)}</span>`;
+const pct = (v, d = 0) => v == null ? "–" : (v * 100).toFixed(d) + "%";
+const cents = v => v == null ? "–" : (v * 100).toFixed(v < 0.1 ? 1 : 0) + "¢";
+const num = v => v == null ? "–" : Number(v).toLocaleString("en-US");
+const dfmt = ts => ts ? new Date(ts * 1000).toISOString().slice(0, 10) : "–";
+const dshort = ts => new Date(ts * 1000).toLocaleDateString("en-US", {month: "short", day: "numeric", timeZone: "UTC"});
+function ago(ts) {
+  if (!ts) return "–";
+  const s = DATA.meta.window_end - ts;
+  if (s < 3600) return Math.max(1, Math.round(s / 60)) + "m ago";
+  if (s < 86400) return Math.round(s / 3600) + "h ago";
+  return Math.round(s / 86400) + "d ago";
+}
+function hold(h) { if (h == null) return "–"; if (h < 1) return Math.round(h * 60) + "m"; if (h < 48) return h.toFixed(h < 10 ? 1 : 0) + "h"; return (h / 24).toFixed(h < 240 ? 1 : 0) + "d"; }
+const eventLink = (slug, text) => slug ? `<a href="https://polymarket.com/event/${encodeURIComponent(slug)}" target="_blank" rel="noopener">${esc(text)}</a>` : esc(text);
+const profileUrl = w => isAddr(w) ? `https://polymarket.com/profile/${w}` : "#";
+const byWallet = Object.fromEntries(DATA.wallets.map(w => [w.wallet, w]));
+function walletLink(w, name) {
+  return `<a href="#wallet=${esc(w)}" data-wallet="${esc(w)}">${esc(name || shortAddr(w))}</a>`;
+}
+function meter(v) {
+  if (v == null) return "–";
+  return `<span class="meter"><span class="track"><span class="fill" style="width:${Math.max(0, Math.min(100, v))}%"></span></span><span class="n">${Math.round(v)}</span></span>`;
+}
+function median(a) { const s = a.filter(x => x != null).sort((x, y) => x - y); if (!s.length) return null; const m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; }
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+};
+
+// ------------------------------------------------------------------ tooltip
+const tt = $("#tt");
+function showTip(html, ev) {
+  tt.innerHTML = html; tt.style.display = "block";
+  const pad = 14, r = tt.getBoundingClientRect();
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + r.width > window.innerWidth - 8) x = ev.clientX - r.width - pad;
+  if (y + r.height > window.innerHeight - 8) y = ev.clientY - r.height - pad;
+  tt.style.left = Math.max(8, x) + "px"; tt.style.top = Math.max(8, y) + "px";
+}
+function hideTip() { tt.style.display = "none"; }
+
+// ------------------------------------------------------------------ charts
+function niceTicks(min, max, count) {
+  count = count || 4;
+  if (min === max) { min = Math.min(0, min); max = Math.max(0, max, 1); }
+  const step0 = (max - min) / count, mag = Math.pow(10, Math.floor(Math.log10(step0))), err = step0 / mag;
+  const step = (err >= 7.5 ? 10 : err >= 3.5 ? 5 : err >= 1.5 ? 2 : 1) * mag;
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step, out = [];
+  for (let v = lo; v <= hi + step / 2; v += step) out.push(Math.abs(v) < step / 1e6 ? 0 : v);
+  return out;
+}
+const tickUsd = v => v === 0 ? "$0" : sUsd(v).replace("+", "");
+
+function lineChart(el, ys, opts) {
+  opts = opts || {};
+  const W = Math.max(280, el.clientWidth), H = opts.height || 200, m = {l: 54, r: 16, t: 14, b: 24};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, n = ys.length;
+  if (!n) { el.innerHTML = '<div class="empty">No data</div>'; return; }
+  const ticks = niceTicks(Math.min(0, ...ys), Math.max(0, ...ys)), t0 = ticks[0], t1 = ticks[ticks.length - 1];
+  const x = i => m.l + (n === 1 ? iw / 2 : i / (n - 1) * iw), y = v => m.t + (1 - (v - t0) / (t1 - t0)) * ih;
+  let g = "";
+  for (const t of ticks) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(${t === 0 ? "--axis" : "--grid"})" stroke-width="1"/><text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${tickUsd(t)}</text>`;
+  const pts = ys.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`);
+  const area = `M${x(0)},${y(0)} L${pts.join(" L")} L${x(n - 1)},${y(0)} Z`;
+  const xl = [0, Math.floor((n - 1) / 2), n - 1].map(i => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === n - 1 ? "end" : "middle"}">${esc(opts.xLabel(i))}</text>`).join("");
+  const last = ys[n - 1];
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${esc(opts.aria || "line chart")}">${g}
+    <path d="${area}" fill="var(--s1-wash)"/>
+    <polyline points="${pts.join(" ")}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${x(n - 1)}" cy="${y(last)}" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2"/>
+    <text x="${x(n - 1) - 8}" y="${y(last) + (last >= 0 ? -10 : 18)}" text-anchor="end" class="lbl-strong">${sUsd(last)}</text>
+    ${xl}
+    <line class="xh" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" stroke="var(--axis)" stroke-width="1" visibility="hidden"/>
+    <circle class="xd" r="4" fill="var(--s1)" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>
+    <rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" class="hit"/></svg>`;
+  const svg = el.querySelector("svg"), xh = svg.querySelector(".xh"), xd = svg.querySelector(".xd"), hit = svg.querySelector(".hit");
+  const move = ev => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width);
+    const i = Math.max(0, Math.min(n - 1, Math.round((px - m.l) / iw * (n - 1))));
+    xh.setAttribute("x1", x(i)); xh.setAttribute("x2", x(i)); xh.setAttribute("visibility", "visible");
+    xd.setAttribute("cx", x(i)); xd.setAttribute("cy", y(ys[i])); xd.setAttribute("visibility", "visible");
+    showTip(opts.tip(i), ev);
+  };
+  hit.addEventListener("pointermove", move);
+  hit.addEventListener("pointerleave", () => { xh.setAttribute("visibility", "hidden"); xd.setAttribute("visibility", "hidden"); hideTip(); });
+}
+
+function barPath(x, y0, w, h, r, up) {
+  // rounded data-end, square at the baseline
+  r = Math.min(r, w / 2, Math.abs(h));
+  if (Math.abs(h) < 0.5) return "";
+  if (up) { const t = y0 - h; return `M${x},${y0} V${t + r} Q${x},${t} ${x + r},${t} H${x + w - r} Q${x + w},${t} ${x + w},${t + r} V${y0} Z`; }
+  const b = y0 + h; return `M${x},${y0} V${b - r} Q${x},${b} ${x + r},${b} H${x + w - r} Q${x + w},${b} ${x + w},${b - r} V${y0} Z`;
+}
+
+function columnChart(el, vals, opts) {
+  opts = opts || {};
+  const W = Math.max(260, el.clientWidth), H = opts.height || 170, m = {l: opts.ml || 50, r: 8, t: 12, b: 22};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b, n = vals.length;
+  const ticks = niceTicks(Math.min(0, ...vals), Math.max(0, ...vals)), t0 = ticks[0], t1 = ticks[ticks.length - 1];
+  const y = v => m.t + (1 - (v - t0) / (t1 - t0)) * ih, band = iw / n, bw = Math.max(2, Math.min(24, band - 2));
+  const fmt = opts.fmt || tickUsd;
+  let g = "";
+  for (const t of ticks) g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(${t === 0 ? "--axis" : "--grid"})"/><text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${fmt(t)}</text>`;
+  let bars = "", hits = "", xl = "";
+  const every = Math.max(1, Math.ceil((opts.labelW || 28) / band));
+  vals.forEach((v, i) => {
+    const bx = m.l + i * band + (band - bw) / 2, y0 = y(0), h = Math.abs(y(v) - y0);
+    const fill = opts.diverging && v < 0 ? "var(--neg)" : "var(--s1)";
+    const d = barPath(bx, y0, bw, h, 4, v >= 0);
+    if (d) bars += `<path d="${d}" fill="${fill}"/>`;
+    hits += `<rect x="${m.l + i * band}" y="${m.t}" width="${band}" height="${ih}" fill="transparent" data-i="${i}"/>`;
+    if (i % every === 0) xl += `<text x="${m.l + i * band + band / 2}" y="${H - 6}" text-anchor="middle">${esc(opts.labels[i])}</text>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="${esc(opts.aria || "column chart")}">${g}${bars}${xl}<g class="hits">${hits}</g></svg>`;
+  el.querySelectorAll(".hits rect").forEach(r => {
+    r.addEventListener("pointermove", ev => showTip(opts.tip(+r.dataset.i), ev));
+    r.addEventListener("pointerleave", hideTip);
+  });
+}
+
+function hbars(el, items, opts) {
+  opts = opts || {};
+  if (!items.length) { el.innerHTML = '<div class="empty">No data</div>'; return; }
+  const fmt = opts.fmt || usd;
+  const maxAbs = Math.max(...items.map(d => Math.abs(d.value)), 1e-9);
+  const hasNeg = opts.diverging && items.some(d => d.value < 0);
+  const zero = hasNeg ? 50 : 0, scale = hasNeg ? 50 : 100;
+  el.innerHTML = items.map((d, i) => {
+    const w = Math.abs(d.value) / maxAbs * scale;
+    const bar = d.value >= 0 ? `<div class="bar r" style="left:${zero}%;width:${w}%"></div>` : `<div class="bar l" style="left:${zero - w}%;width:${w}%"></div>`;
+    return `<div class="hbar" data-i="${i}"><div class="name" title="${esc(d.label)}">${esc(d.label)}</div><div class="bararea">${hasNeg ? `<div class="zero" style="left:${zero}%"></div>` : ""}${bar}</div><div class="v">${opts.diverging ? sUsd(d.value) : fmt(d.value)}</div></div>`;
+  }).join("");
+  if (opts.tip) el.querySelectorAll(".hbar").forEach(r => {
+    r.addEventListener("pointermove", ev => showTip(opts.tip(items[+r.dataset.i]), ev));
+    r.addEventListener("pointerleave", hideTip);
+  });
+}
+
+function scatter(el, points, highlight) {
+  const W = Math.max(280, el.clientWidth), H = Math.min(440, Math.max(300, W * 0.45)), m = {l: 46, r: 16, t: 12, b: 38};
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const x = v => m.l + v * iw, y = v => m.t + (1 - v) * ih;
+  const maxAbs = Math.max(...points.map(p => Math.abs(p.pnl)), 1);
+  let g = "";
+  for (let t = 0; t <= 1.0001; t += 0.25) {
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(t)}" y2="${y(t)}" stroke="var(--grid)"/><text x="${m.l - 8}" y="${y(t) + 4}" text-anchor="end">${Math.round(t * 100)}%</text>`;
+    g += `<line x1="${x(t)}" x2="${x(t)}" y1="${m.t}" y2="${m.t + ih}" stroke="var(--grid)"/><text x="${x(t)}" y="${m.t + ih + 16}" text-anchor="middle">${Math.round(t * 100)}¢</text>`;
+  }
+  g += `<text x="${m.l + iw / 2}" y="${H - 4}" text-anchor="middle">Average buy price (volume-weighted)</text>`;
+  g += `<text transform="translate(12 ${m.t + ih / 2}) rotate(-90)" text-anchor="middle">Win rate</text>`;
+  const sorted = points.slice().sort((a, b) => Math.abs(b.pnl) - Math.abs(a.pnl));
+  let dots = "";
+  sorted.forEach(p => {
+    const r = 4 + 12 * Math.sqrt(Math.abs(p.pnl) / maxAbs), on = !highlight || p.style === highlight;
+    dots += `<circle cx="${x(p.x)}" cy="${y(p.y)}" r="${r}" fill="var(${p.pnl >= 0 ? "--s1" : "--neg"})" fill-opacity="${on ? 0.85 : 0.12}" stroke="var(--surface)" stroke-width="2" data-w="${esc(p.wallet)}" style="cursor:pointer"/>`;
+  });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" height="${H}" role="img" aria-label="Scatter of average buy price against win rate">${g}<g class="dots">${dots}</g></svg>`;
+  el.querySelectorAll("circle[data-w]").forEach(c => {
+    const w = byWallet[c.dataset.w];
+    c.addEventListener("pointermove", ev => showTip(`<b>${esc(label(w))}</b><br><span class="k">${esc(w.style)}</span><br>90d PnL ${sUsd(w.pnl_90d)}<br>Win rate ${pct(w.win_rate)} · avg buy ${cents(w.avg_buy_price)}<br>${w.n_resolved} closed positions`, ev));
+    c.addEventListener("pointerleave", hideTip);
+    c.addEventListener("click", () => openWallet(w.wallet));
+  });
+}
+
+// ------------------------------------------------------------------ header
+const M = DATA.meta, S = DATA.summary;
+$("#subtitle").textContent = `Rolling ${M.days}-day window · ${dfmt(M.window_start)} → ${dfmt(M.window_end)} UTC · ${S.n_wallets} wallets analysed from ${num(S.universe_size)} leaderboard entries`;
+if (M.synthetic) $("#banner").innerHTML = `<div class="banner"><b>Synthetic demo data.</b> Every wallet, market and number on this page comes from pmscout's offline simulator, not Polymarket. Run <code>pmscout run</code> with network access for the real analysis.</div>`;
+const profitShare = S.n_wallets ? S.n_profitable / S.n_wallets : 0;
+$("#tiles").innerHTML = [
+  ["hero", "Combined 90-day PnL", sUsd(S.total_pnl), `median wallet ${sUsd(S.median_pnl)}`],
+  ["", "Profitable wallets", `${S.n_profitable} / ${S.n_wallets}`, `${pct(profitShare)} made money in the window`],
+  ["", "Top 10 share", S.total_pnl > 0 ? pct(S.top10_pnl / S.total_pnl) : "–", `${sUsd(S.top10_pnl)} from the top 10`],
+  ["", "Median win rate", pct(S.median_win_rate), "wallets with 10+ closed positions"],
+  ["", "Volume traded", usd(S.total_volume), "buys + sells in the window"],
+].map(([c, l, v, n]) => `<div class="tile ${c}"><div class="lbl">${l}</div><div class="val">${v}</div><div class="note">${n}</div></div>`).join("");
+
+// ------------------------------------------------------------------ theme
+const themeBtn = $("#themeBtn");
+function applyTheme(t) {
+  if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  themeBtn.textContent = "Theme: " + (t || "auto");
+}
+let theme = store.get("pmscout-theme") || "";
+applyTheme(theme);
+themeBtn.addEventListener("click", () => {
+  theme = theme === "" ? "light" : theme === "light" ? "dark" : "";
+  store.set("pmscout-theme", theme); applyTheme(theme); rerenderCharts();
+});
+
+// ------------------------------------------------------------------ tabs
+const TABS = [["leaderboard", "Leaderboard"], ["consensus", "Smart-money consensus"], ["contested", "Contested"], ["heat", "Market heat"], ["styles", "Styles"], ["categories", "Categories"], ["linked", "Linked wallets"], ["method", "Method"]];
+$("#tabs").innerHTML = TABS.map(([k, t]) => `<button role="tab" data-tab="${k}" aria-selected="false">${t}</button>`).join("");
+const rendered = {};
+function setTab(k) {
+  if (!TABS.some(t => t[0] === k)) k = "leaderboard";
+  document.querySelectorAll("#tabs button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === k ? "true" : "false"));
+  document.querySelectorAll("section.panel").forEach(p => p.classList.toggle("active", p.id === "p-" + k));
+  if (!rendered[k]) { rendered[k] = true; (RENDER[k] || (() => {}))(); }
+  else if (k === "styles") renderScatter();
+  store.set("pmscout-tab", k);
+}
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("button[data-tab]"); if (b) { setTab(b.dataset.tab); history.replaceState(null, "", "#tab=" + b.dataset.tab); } });
+
+// ------------------------------------------------------------------ leaderboard
+const COLS = [
+  {k: "rank", t: "#", num: true},
+  {k: "wallet", t: "Wallet", sv: w => label(w).toLowerCase(), r: w => `<div class="wcell"><div class="wname">${esc(label(w))}${w.verified ? ' <span title="Verified" class="muted">✓</span>' : ""}</div><div class="waddr">${esc(shortAddr(w.wallet))}</div>${w.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join("")}</div>`},
+  {k: "style", t: "Style", r: w => `<span class="chip">${esc(w.style)}</span>`},
+  {k: "pnl_90d", t: "90d PnL", num: true, r: w => pnlHtml(w.pnl_90d), h: "Realized in window + unrealized on positions bought in window"},
+  {k: "realized_90d", t: "Realized", num: true, r: w => pnlHtml(w.realized_90d)},
+  {k: "upnl_window", t: "Unrealized", num: true, r: w => pnlHtml(w.upnl_window)},
+  {k: "roi", t: "ROI", num: true, r: w => w.roi == null ? "–" : `<span class="${cls(w.roi)}">${pct(w.roi, 1)}</span>`, h: "Realized PnL / cost of closed positions"},
+  {k: "win_rate", t: "Win rate", num: true, r: w => pct(w.win_rate)},
+  {k: "profit_factor", t: "PF", num: true, r: w => w.profit_factor == null ? "–" : w.profit_factor >= 99 ? "∞" : w.profit_factor.toFixed(2), h: "Profit factor: gross wins / gross losses"},
+  {k: "n_resolved", t: "Closed", num: true, r: w => num(w.n_resolved)},
+  {k: "volume", t: "Volume", num: true, r: w => usd(w.volume)},
+  {k: "top_cat", t: "Focus", r: w => w.top_cat ? `${esc(w.top_cat)} <span class="muted">${pct(w.top_cat_share)}</span>` : "–"},
+  {k: "last_trade", t: "Last trade", num: true, r: w => ago(w.last_trade)},
+  {k: "consistency", t: "Consistency", num: true, r: w => meter(w.consistency), h: "0-100: profitable weeks, profit factor, low dependence on one win, sample size, drawdown"},
+  {k: "copy_score", t: "Copy score", num: true, r: w => meter(w.copy_score), h: "Consistency discounted for traits a follower can't replicate (market making, scalping, 95¢+ buying, inactivity)"},
+];
+const lb = {sort: "rank", dir: 1};
+function fillSelect(sel, values) { sel.insertAdjacentHTML("beforeend", values.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join("")); }
+fillSelect($("#f-style"), Object.keys(S.styles));
+fillSelect($("#f-cat"), [...new Set(DATA.wallets.map(w => w.top_cat).filter(Boolean))].sort());
+function filteredWallets() {
+  const q = $("#f-q").value.trim().toLowerCase(), st = $("#f-style").value, cat = $("#f-cat").value;
+  const min = +$("#f-min").value || 0, hideMM = $("#f-mm").checked, hideHit = $("#f-hit").checked;
+  let rows = DATA.wallets.filter(w => (!q || w.wallet.includes(q) || (w.name || "").toLowerCase().includes(q) || (w.x || "").toLowerCase().includes(q))
+    && (!st || w.style === st) && (!cat || w.top_cat === cat) && w.n_resolved >= min
+    && (!hideMM || w.style !== "Market Maker") && (!hideHit || !w.tags.includes("One big hit")));
+  const col = COLS.find(c => c.k === lb.sort), sv = col.sv || (w => w[col.k]);
+  rows.sort((a, b) => {
+    const va = sv(a), vb = sv(b);
+    if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1;
+    return (va < vb ? -1 : va > vb ? 1 : 0) * lb.dir;
+  });
+  return rows;
+}
+function renderLeaderboard() {
+  const rows = filteredWallets();
+  const head = `<thead><tr>${COLS.map(c => `<th class="sortable ${c.num ? "num" : ""}" data-k="${c.k}" ${c.h ? `title="${esc(c.h)}"` : ""}>${c.t}${lb.sort === c.k ? `<span class="arrow">${lb.dir > 0 ? "▲" : "▼"}</span>` : ""}</th>`).join("")}</tr></thead>`;
+  const body = rows.length ? rows.map(w => `<tr class="click" data-wallet="${esc(w.wallet)}">${COLS.map(c => `<td class="${c.num ? "num" : ""}">${c.r ? c.r(w) : esc(w[c.k])}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${COLS.length}" class="empty">No wallets match these filters.</td></tr>`;
+  $("#lb").innerHTML = head + "<tbody>" + body + "</tbody>";
+  $("#f-count").textContent = `Showing ${rows.length} of ${DATA.wallets.length}`;
+}
+$("#lb").addEventListener("click", e => {
+  const th = e.target.closest("th[data-k]");
+  if (th) { const k = th.dataset.k; if (lb.sort === k) lb.dir *= -1; else { lb.sort = k; lb.dir = ["rank", "wallet", "style", "top_cat", "last_trade"].includes(k) ? 1 : -1; if (k === "last_trade") lb.dir = -1; } renderLeaderboard(); return; }
+  const tr = e.target.closest("tr[data-wallet]"); if (tr) openWallet(tr.dataset.wallet);
+});
+["#f-q", "#f-style", "#f-cat", "#f-min", "#f-mm", "#f-hit"].forEach(s => $(s).addEventListener("input", renderLeaderboard));
+$("#csvBtn").addEventListener("click", () => {
+  const cols = ["rank", "wallet", "name", "style", "tags", "pnl_90d", "realized_90d", "upnl_window", "net_cash_90d", "roi", "win_rate", "profit_factor", "n_resolved", "volume", "n_trades", "median_trade", "avg_buy_price", "top_cat", "consistency", "copy_score", "last_trade"];
+  const q = v => { v = Array.isArray(v) ? v.join("; ") : v == null ? "" : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const csv = [cols.join(",")].concat(filteredWallets().map(w => cols.map(c => q(w[c])).join(","))).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type: "text/csv"})); a.download = "pmscout-wallets.csv"; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+// ------------------------------------------------------------------ wallet drawer
+const drawer = $("#drawer"), drawerBg = $("#drawerBg");
+let openW = null;
+function stat(k, v, s) { return `<div><div class="k">${k}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ""}</div>`; }
+function miniTable(rows, cols, empty) {
+  if (!rows.length) return `<div class="empty">${empty}</div>`;
+  return `<div class="tablewrap" style="border:0"><table class="mini"><thead><tr>${cols.map(c => `<th class="${c.num ? "num" : ""}">${c.t}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${cols.map(c => `<td class="${c.num ? "num" : c.cls || ""}">${c.r(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+const mkt = r => `<span class="ellip" title="${esc(r.title)}">${eventLink(r.eventSlug, r.title)}</span><span class="muted">${esc(r.outcome)}${r.category ? " · " + esc(r.category) : ""}</span>`;
+function openWallet(w) {
+  const s = byWallet[w], d = DATA.details[w];
+  if (!s || !d) return;
+  openW = w;
+  const lbr = (k) => { const b = d.boards[k]; return b ? `#${b.rank} (${sUsd(b.pnl)})` : "–"; };
+  drawer.innerHTML = `
+  <div class="dhead">
+    <div style="min-width:0">
+      <div class="muted" style="font-size:12px">Rank #${s.rank} by 90-day PnL</div>
+      <h2 style="font-size:19px;margin:1px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(label(s))}</h2>
+    </div>
+    <button class="btn" id="closeDrawer" type="button" aria-label="Close">Close</button>
+  </div>
+  <div class="dinfo">
+    <div class="waddr" style="word-break:break-all">${esc(s.wallet)}</div>
+    <div style="margin-top:6px"><span class="chip">${esc(s.style)}</span> ${s.tags.map(t => `<span class="chip tag">${esc(t)}</span>`).join("")}</div>
+    <div style="margin-top:8px;font-size:13px"><a href="${profileUrl(s.wallet)}" target="_blank" rel="noopener">Polymarket profile ↗</a>${s.x ? ` · <a href="https://x.com/${encodeURIComponent(s.x)}" target="_blank" rel="noopener">@${esc(s.x)} ↗</a>` : ""}${s.truncated ? ' · <span class="muted" title="History hit a download cap; some figures are lower bounds">partial history</span>' : ""}</div>
+  </div>
+  <div class="dbody">
+    <div class="muted" style="font-size:12.5px">${esc((DATA.styles || {})[s.style] || "")}</div>
+    <div class="stats">
+      ${stat("90-day PnL", pnlHtml(s.pnl_90d), `realized ${sUsd(s.realized_90d)} · open ${sUsd(s.upnl_window)}`)}
+      ${stat("PnL without best bet", pnlHtml(s.pnl_ex_best), s.top_win_share != null ? `best bet = ${pct(s.top_win_share)} of PnL` : "")}
+      ${stat("Win rate", pct(s.win_rate), `${s.wins}W / ${s.losses}L of ${s.n_resolved} closed`)}
+      ${stat("Profit factor", s.profit_factor == null ? "–" : s.profit_factor >= 99 ? "∞" : s.profit_factor.toFixed(2), `avg win ${usd(s.avg_win)} · avg loss ${usd(s.avg_loss)}`)}
+      ${stat("ROI on closed", s.roi == null ? "–" : `<span class="${cls(s.roi)}">${pct(s.roi, 1)}</span>`, `net cash flow ${sUsd(s.net_cash_90d)}`)}
+      ${stat("Profitable weeks", pct(s.pct_up_weeks), `Sharpe (wkly) ${s.sharpe == null ? "–" : s.sharpe.toFixed(2)}`)}
+      ${stat("Max drawdown", usd(s.max_dd), s.rel_dd != null ? `${pct(s.rel_dd)} of peak` : "")}
+      ${stat("Consistency / copy", `${s.consistency == null ? "–" : Math.round(s.consistency)} / ${s.copy_score == null ? "–" : Math.round(s.copy_score)}`, "0–100 scores")}
+      ${stat("Volume", usd(s.volume), `${num(s.n_trades)} trades on ${s.active_days} days`)}
+      ${stat("Median trade", usd(s.median_trade), `p90 ${usd(s.p90_trade)} · max ${usd(s.max_trade)}`)}
+      ${stat("Avg buy price", cents(s.avg_buy_price), `${pct(s.fav_share)} at ≥85¢ · ${pct(s.long_share)} at ≤20¢`)}
+      ${stat("Median hold", hold(s.median_hold_h), `sells ${pct(s.sell_ratio)} of buys`)}
+      ${stat("Markets traded", num(s.n_markets), `${num(s.n_events)} events · two-sided ${pct(s.two_sided)}`)}
+      ${stat("Open positions", usd(s.open_value), `${s.n_open} open · unrealized ${sUsd(s.upnl_all)}`)}
+      ${stat("Leaderboard (month)", lbr("OVERALL:MONTH:PNL"), "official PnL rank")}
+      ${stat("Leaderboard (all-time)", lbr("OVERALL:ALL:PNL"), `last trade ${ago(s.last_trade)}`)}
+    </div>
+    <div class="card"><h3>Cumulative realized PnL</h3><div class="chart" id="d-curve"></div></div>
+    <div class="grid2">
+      <div class="card"><h3>Weekly realized PnL</h3><div class="chart" id="d-weekly"></div></div>
+      <div class="card"><h3>Buy volume by entry price</h3><div class="chart" id="d-price"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><h3>Buy volume by category</h3><div class="hbars" id="d-cat"></div></div>
+      <div class="card"><h3>Trades by hour (UTC)</h3><div class="chart" id="d-hours"></div></div>
+    </div>
+    <div class="card"><h3>Open positions</h3>${miniTable(d.open, [
+      {t: "Market", r: mkt, cls: "t"}, {t: "Value", num: true, r: r => usd(r.value)}, {t: "Entry", num: true, r: r => cents(r.avg)},
+      {t: "Now", num: true, r: r => cents(r.cur)}, {t: "Unrealized", num: true, r: r => pnlHtml(r.upnl)}, {t: "Ends", num: true, r: r => esc(r.end || "–")}], "No open positions")}</div>
+    <div class="grid2">
+      <div class="card"><h3>Best closed positions</h3>${miniTable(d.best, [{t: "Market", r: mkt, cls: "t"}, {t: "Entry", num: true, r: r => cents(r.avg)}, {t: "PnL", num: true, r: r => pnlHtml(r.pnl)}], "No winning positions in window")}</div>
+      <div class="card"><h3>Worst closed positions</h3>${miniTable(d.worst, [{t: "Market", r: mkt, cls: "t"}, {t: "Entry", num: true, r: r => cents(r.avg)}, {t: "PnL", num: true, r: r => pnlHtml(r.pnl)}], "No losing positions in window")}</div>
+    </div>
+    <div class="card"><h3>Recent moves (last 72h)</h3>${miniTable(d.recent, [
+      {t: "When", r: r => ago(r.t)}, {t: "Side", r: r => esc(r.side)}, {t: "Market", r: mkt, cls: "t"},
+      {t: "Price", num: true, r: r => cents(r.price)}, {t: "Size", num: true, r: r => usd(r.usdc)}], "No trades in the last 72 hours")}</div>
+  </div>`;
+  drawer.classList.add("open"); drawerBg.classList.add("open"); drawer.setAttribute("aria-hidden", "false");
+  drawer.scrollTop = 0;
+  $("#closeDrawer").addEventListener("click", closeWallet);
+  history.replaceState(null, "", "#wallet=" + w);
+  requestAnimationFrame(() => renderDrawerCharts(s, d));
+}
+function renderDrawerCharts(s, d) {
+  if (!drawer.classList.contains("open")) return;
+  const start = M.window_start;
+  lineChart($("#d-curve"), d.curve, {xLabel: i => dshort(start + i * 86400), aria: "Cumulative realized PnL",
+    tip: i => `<b>${dshort(start + i * 86400)}</b><br>Cumulative ${sUsd(d.curve[i])}<br><span class="k">That day</span> ${sUsd(d.curve[i] - (i ? d.curve[i - 1] : 0))}`});
+  columnChart($("#d-weekly"), d.weekly, {diverging: true, labels: d.weekly.map((_, i) => "W" + (i + 1)), aria: "Weekly realized PnL",
+    tip: i => `<b>Week of ${dshort(start + i * 7 * 86400)}</b><br>${sUsd(d.weekly[i])}`});
+  const bins = d.price_hist.map((_, i) => `${i * 10}–${i * 10 + 10}¢`);
+  columnChart($("#d-price"), d.price_hist, {labels: d.price_hist.map((_, i) => i * 10 + "¢"), aria: "Buy volume by entry price",
+    tip: i => `<b>${bins[i]}</b><br>${usd(d.price_hist[i])} bought`});
+  hbars($("#d-cat"), Object.entries(d.cat_buy).map(([k, v]) => ({label: k, value: v, pnl: d.cat_pnl[k]})),
+    {tip: it => `<b>${esc(it.label)}</b><br>Bought ${usd(it.value)}<br>Realized ${sUsd(it.pnl || 0)}`});
+  columnChart($("#d-hours"), d.hours, {labels: d.hours.map((_, i) => String(i).padStart(2, "0")), fmt: v => num(v), ml: 36, labelW: 22, aria: "Trades by hour",
+    tip: i => `<b>${String(i).padStart(2, "0")}:00–${String(i).padStart(2, "0")}:59 UTC</b><br>${num(d.hours[i])} trades`});
+}
+function closeWallet() {
+  drawer.classList.remove("open"); drawerBg.classList.remove("open"); drawer.setAttribute("aria-hidden", "true");
+  openW = null; hideTip();
+  history.replaceState(null, "", "#tab=" + (store.get("pmscout-tab") || "leaderboard"));
+}
+drawerBg.addEventListener("click", closeWallet);
+document.addEventListener("keydown", e => { if (e.key === "Escape" && openW) closeWallet(); });
+document.addEventListener("click", e => {
+  const a = e.target.closest("a[data-wallet]");
+  if (a) { e.preventDefault(); openWallet(a.dataset.wallet); }
+});
+
+// ------------------------------------------------------------------ consensus
+fillSelect($("#c-cat"), [...new Set(DATA.consensus.map(c => c.category))].sort());
+function renderConsensus() {
+  const cat = $("#c-cat").value, min = Math.max(2, +$("#c-min").value || 2);
+  const rows = DATA.consensus.filter(c => (!cat || c.category === cat) && c.n_wallets >= min);
+  $("#c-count").textContent = `${rows.length} positions`;
+  if (!rows.length) { $("#cons").innerHTML = `<tbody><tr><td class="empty">No shared positions match.</td></tr></tbody>`; return; }
+  $("#cons").innerHTML = `<thead><tr><th>Market / outcome</th><th class="num">Wallets</th><th class="num">Value</th><th class="num">Avg entry</th><th class="num">Now</th><th class="num">Edge</th><th class="num">Against</th><th class="num">Conviction</th><th class="num">Ends</th></tr></thead><tbody>` +
+    rows.map(c => `<tr><td style="min-width:260px;max-width:440px"><div>${eventLink(c.eventSlug, c.title)}</div><div><span class="chip">${esc(c.outcome)}</span> <span class="muted">${esc(c.category)}</span></div>
+      <details class="holders"><summary>${c.n_wallets} holders</summary><ul>${c.holders.map(h => `<li>${walletLink(h.wallet, h.name)} <span class="muted">#${h.rank}</span> · ${usd(h.value)} @ ${cents(h.avg)} · ${pnlHtml(h.upnl)}</li>`).join("")}${c.n_wallets > c.holders.length ? `<li class="muted">+${c.n_wallets - c.holders.length} more</li>` : ""}</ul></details></td>
+      <td class="num">${c.n_wallets}</td><td class="num">${usd(c.value)}</td><td class="num">${cents(c.avg_entry)}</td><td class="num">${cents(c.cur)}</td>
+      <td class="num"><span class="${cls(c.edge)}">${c.edge == null ? "–" : (c.edge > 0 ? "▲ +" : c.edge < 0 ? "▼ −" : "") + Math.abs(c.edge * 100).toFixed(1) + "¢"}</span></td>
+      <td class="num">${c.against_n ? `${c.against_n} · ${usd(c.against_value)}` : "–"}</td><td class="num">${usd(c.conviction)}</td><td class="num">${esc((c.end || "").slice(0, 10) || "–")}</td></tr>`).join("") + "</tbody>";
+}
+["#c-cat", "#c-min"].forEach(s => $(s).addEventListener("input", renderConsensus));
+
+// ------------------------------------------------------------------ contested
+function renderContested() {
+  const el = $("#contested");
+  if (!DATA.contested.length) { el.innerHTML = '<div class="empty card">No markets where top wallets meaningfully disagree.</div>'; return; }
+  el.innerHTML = DATA.contested.map(c => {
+    const [a, b] = c.sides, tot = a.value + b.value;
+    const side = (s, color) => `<div><div><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(${color});margin-right:6px"></i><b>${esc(s.outcome)}</b> <span class="muted">now ${cents(s.cur)}</span></div>
+      <div class="muted" style="font-size:12.5px">${s.n_wallets} wallets · ${usd(s.value)} · avg entry ${cents(s.avg_entry)}</div>
+      <div style="font-size:12.5px">${s.holders.slice(0, 4).map(h => walletLink(h.wallet, h.name)).join(", ")}</div></div>`;
+    return `<div class="card"><div style="font-weight:560">${eventLink(c.eventSlug, c.title)}</div><div class="muted" style="font-size:12px">${esc(c.category)} · ${usd(c.total)} at stake · ends ${esc((c.end || "").slice(0, 10) || "–")}</div>
+      <div class="split" role="img" aria-label="${esc(a.outcome)} ${pct(a.value / tot)} versus ${esc(b.outcome)} ${pct(b.value / tot)}"><div style="width:${a.value / tot * 100}%;background:var(--s1)"></div><div style="width:${b.value / tot * 100}%;background:var(--s2)"></div></div>
+      <div class="grid2" style="gap:10px">${side(a, "--s1")}${side(b, "--s2")}</div></div>`;
+  }).join("");
+}
+
+// ------------------------------------------------------------------ heat
+function renderHeat() {
+  if (!DATA.heat.length) { $("#heat").innerHTML = '<tbody><tr><td class="empty">No trades in window.</td></tr></tbody>'; return; }
+  $("#heat").innerHTML = `<thead><tr><th>Market</th><th>Category</th><th class="num">Wallets</th><th class="num">Bought</th><th class="num">Sold</th><th class="num">Net flow</th></tr></thead><tbody>` +
+    DATA.heat.map(h => `<tr><td style="min-width:260px">${eventLink(h.eventSlug, h.title)}</td><td>${esc(h.category)}</td><td class="num">${h.n_wallets}</td><td class="num">${usd(h.buy)}</td><td class="num">${usd(h.sell)}</td><td class="num">${pnlHtml(h.net)}</td></tr>`).join("") + "</tbody>";
+}
+
+// ------------------------------------------------------------------ styles
+const styleNames = Object.keys(S.styles);
+fillSelect($("#s-style"), styleNames);
+$("#s-style").addEventListener("input", renderScatter);
+function renderScatter() {
+  const pts = DATA.wallets.filter(w => w.avg_buy_price != null && w.win_rate != null).map(w => ({wallet: w.wallet, x: w.avg_buy_price, y: w.win_rate, pnl: w.pnl_90d || 0, style: w.style}));
+  if (!pts.length) { $("#scatter").innerHTML = '<div class="empty">Not enough data</div>'; return; }
+  scatter($("#scatter"), pts, $("#s-style").value);
+}
+function renderStyles() {
+  hbars($("#style-bars"), styleNames.map(k => ({label: k, value: S.styles[k]})), {fmt: v => num(v),
+    tip: it => `<b>${esc(it.label)}</b><br>${it.value} wallets<br><span class="k">${esc((DATA.styles || {})[it.label] || "")}</span>`});
+  const rows = styleNames.map(k => {
+    const ws = DATA.wallets.filter(w => w.style === k);
+    return {k, n: ws.length, pnl: median(ws.map(w => w.pnl_90d)), wr: median(ws.map(w => w.win_rate)), cons: median(ws.map(w => w.consistency)), tot: ws.reduce((a, w) => a + (w.pnl_90d || 0), 0), prof: ws.filter(w => w.pnl_90d > 0).length};
+  });
+  $("#style-table").innerHTML = `<thead><tr><th>Style</th><th class="num">Wallets</th><th class="num">Median PnL</th><th class="num">Profitable</th><th class="num">Median win rate</th><th class="num">Total PnL</th></tr></thead><tbody>` +
+    rows.map(r => `<tr><td>${esc(r.k)}</td><td class="num">${r.n}</td><td class="num">${pnlHtml(r.pnl)}</td><td class="num">${pct(r.n ? r.prof / r.n : null)}</td><td class="num">${pct(r.wr)}</td><td class="num">${pnlHtml(r.tot)}</td></tr>`).join("") + "</tbody>";
+  $("#style-defs").innerHTML = Object.entries(DATA.styles || {}).map(([k, v]) => `<p style="margin:6px 0"><b style="color:var(--ink)">${esc(k)}</b>: ${esc(v)}</p>`).join("") +
+    `<p style="margin:12px 0 0" class="muted">Styles are assigned in the order listed, and a wallet takes the first one that matches. Tags such as “One big hit” (the 90-day profit disappears without the single best bet), “Scalper” (median hold under 2h) and “Gone quiet” (no trade in 14 days) are added on top.</p>`;
+  renderScatter();
+}
+
+// ------------------------------------------------------------------ categories
+function renderCategories() {
+  const tot = DATA.categories.totals;
+  hbars($("#cat-bars"), tot.map(t => ({label: t.category, value: t.pnl, t})), {diverging: true,
+    tip: it => `<b>${esc(it.label)}</b><br>Net ${sUsd(it.t.pnl)}<br>Winners ${sUsd(it.t.gain)} · losers ${sUsd(it.t.loss)}<br>Bought ${usd(it.t.buy)} by ${it.t.wallets} wallets`});
+  const L = DATA.categories.leaders;
+  const cats = tot.map(t => t.category).filter(c => (L[c] || []).length);
+  $("#cat-leaders").innerHTML = cats.length ? cats.map(c => `<div class="card"><h2>${esc(c)}</h2><ol>${L[c].map(l => `<li>${walletLink(l.wallet, l.name)} <span class="pos">${sUsd(l.pnl)}</span> <span class="muted">· ${esc(l.style)}</span></li>`).join("")}</ol></div>`).join("") : '<div class="empty card">No category leaders.</div>';
+}
+
+// ------------------------------------------------------------------ linked
+function renderLinked() {
+  if (!DATA.linked.length) { $("#linked").innerHTML = '<tbody><tr><td class="empty">No strongly overlapping wallet pairs found.</td></tr></tbody>'; return; }
+  $("#linked").innerHTML = `<thead><tr><th>Wallet A</th><th>Wallet B</th><th class="num">Shared markets</th><th class="num">Overlap</th><th class="num">Co-entries</th><th class="num">PnL A</th><th class="num">PnL B</th></tr></thead><tbody>` +
+    DATA.linked.map(l => `<tr><td>${walletLink(l.a, l.a_name)}<div class="muted" style="font-size:12px">${esc(l.a_style)}</div></td><td>${walletLink(l.b, l.b_name)}<div class="muted" style="font-size:12px">${esc(l.b_style)}</div></td>
+      <td class="num">${l.shared}</td><td class="num">${pct(l.jaccard)}</td><td class="num">${num(l.co_entries)}</td><td class="num">${pnlHtml(l.a_pnl)}</td><td class="num">${pnlHtml(l.b_pnl)}</td></tr>`).join("") + "</tbody>";
+}
+
+// ------------------------------------------------------------------ method
+function renderMethod() {
+  $("#method").innerHTML = `
+  <h2>Which wallets are included</h2>
+  <p>pmscout builds the universe from Polymarket's public leaderboard (<code>data-api.polymarket.com/v1/leaderboard</code>). It takes the top ${M.depth} wallets of every overall board (week, month and all-time, ranked by PnL and by volume) and the top ${M.category_depth} of each category's monthly PnL board. Polymarket has no 90-day board, so this mix catches wallets that are hot right now as well as long-run winners that stayed active. ${num(M.universe_size)} unique wallets appeared and ${num(M.candidates)} were analysed in depth.</p>
+  <h2>How 90-day PnL is computed</h2>
+  <p><b>Realized</b> covers positions closed inside the window (<code>/closed-positions</code>), plus positions in markets that resolved inside the window but were not redeemed yet (<code>/positions</code> with <code>redeemable</code>, dated by the market's end date). <b>Unrealized</b> covers still-open positions the wallet bought into during the window. Older open positions are left out because their gains accrued before the window. <b>90d PnL</b> is the sum of the two and drives the ranking. <b>Net cash flow</b> is a separate check from the raw activity ledger: sells + redemptions + merges + rewards − buys − splits.</p>
+  <h2>Scores</h2>
+  <p><b>Consistency (0–100)</b> = 30% share of profitable weeks + 25% profit factor (1→0, 4+→full) + 20% not depending on one win + 15% sample size (60+ closed positions = full) + 10% shallow drawdown. The score is halved for wallets that lost money. <b>Copy score</b> discounts consistency for things a follower cannot replicate: market making (×0.25), median holds under 2h (×0.6), buying at 93¢+ on average (×0.7), fewer than 10 trades (×0.5), no trade in 14 days (×0.7), negative PnL (×0.5).</p>
+  <h2>Caveats</h2>
+  <p>A leaderboard wallet is a Polymarket proxy wallet. One person can run several of them, and the Linked wallets tab flags pairs that may belong together. Win rate counts closed positions, not trades. Market-maker PnL includes rebates and inventory, so compare it to directional wallets with care. Very active wallets can hit the download caps (${S.truncated} did in this run). Their figures are lower bounds, marked “partial history”. Categories come from ${M.tags_enriched ? "Gamma event tags, falling back to " : ""}keyword rules on market titles. Prices and positions are a snapshot taken when the data was collected. None of this is financial advice. Past results, especially over 90 days, say little about the next 90.</p>
+  <h2>This run</h2>
+  <p>Generated ${new Date(M.generated_at * 1000).toISOString().replace("T", " ").slice(0, 16)} UTC · window ${dfmt(M.window_start)} → ${dfmt(M.window_end)} · ${num(M.requests || 0)} API requests · ${M.failures || 0} wallets failed to download.</p>`;
+}
+
+const RENDER = {leaderboard: renderLeaderboard, consensus: renderConsensus, contested: renderContested, heat: renderHeat, styles: renderStyles, categories: renderCategories, linked: renderLinked, method: renderMethod};
+function rerenderCharts() {
+  const active = document.querySelector("section.panel.active");
+  if (active && active.id === "p-styles") renderScatter();
+  if (openW) renderDrawerCharts(byWallet[openW], DATA.details[openW]);
+}
+let rt = null;
+window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(rerenderCharts, 150); });
+
+$("#footer").textContent = `pmscout · data from Polymarket's public APIs · generated ${dfmt(M.generated_at)} · not financial advice`;
+const h = location.hash.slice(1), hp = new URLSearchParams(h);
+setTab(hp.get("tab") || store.get("pmscout-tab") || "leaderboard");
+if (hp.get("wallet") && byWallet[hp.get("wallet")]) openWallet(hp.get("wallet"));
+})();
+</script>
+</body>
+</html>

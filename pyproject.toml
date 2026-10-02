@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pmscout"
+version = "0.1.0"
+description = "Analyse every top Polymarket wallet over a rolling 90-day window and render a dashboard."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+pmscout = "pmscout.cli:main"
+
+[tool.setuptools]
+packages = ["pmscout"]
+
+[tool.setuptools.package-data]
+pmscout = ["templates/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
