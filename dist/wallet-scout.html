@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 </head>
 <body>
-<title>JSak Wallet Scout</title>
+<title>Wallet Scout</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
 <style>
@@ -95,8 +95,8 @@ a { color: var(--accent); }
 
 <main>
   <header>
-    <h1>JS<span>ak</span></h1>
-    <span class="sub">Pump.fun · Fomo · Phantom wallet scout</span>
+    <h1>Wallet <span>Scout</span></h1>
+    <span class="sub">Find the best Pump.fun, Fomo and Phantom traders</span>
     <span id="modeChip" class="chip"></span>
   </header>
 
@@ -119,13 +119,13 @@ a { color: var(--accent); }
         <div class="field" id="topField"><label for="top">Wallets to analyze</label><input type="number" id="top" value="30" min="1" max="500"></div>
         <button type="button" class="btn primary" id="run">Run scan</button>
       </div>
-      <p class="note">Your key is saved only in this browser. Scans call the Helius API directly from this page, so run the downloaded app file in a normal browser tab; previews inside Claude can't reach outside sites.</p>
+      <p class="note">Your key is saved only in this browser. Scans call the Helius API directly from this page, so download the app, unzip it and open Wallet Scout.html in your browser; previews inside Claude can't reach outside sites.</p>
     </div>
     <div style="display:grid;gap:8px;align-content:start;min-width:0">
       <span class="eyebrow">Progress</span>
       <div class="log" id="log" aria-live="polite"><div>Paste token mints or wallets, add your key, then Run scan. Progress shows here.</div></div>
       <div class="row">
-        <button type="button" class="btn" id="getApp">Download app</button>
+        <button type="button" class="btn" id="getApp">Download app (.zip)</button>
         <button type="button" class="btn" id="loadDemo">Load demo data</button>
       </div>
     </div>
@@ -149,9 +149,9 @@ a { color: var(--accent); }
 </main>
 
 <script type="module">
-const JSAK = {};
+const ENGINE = {};
 // platforms.js
-Object.assign(JSAK, (() => {
+Object.assign(ENGINE, (() => {
 function compilePlatforms(raw) {
   const venues = Object.entries(raw.venues || {}).map(([id, v]) => ({
     id,
@@ -208,8 +208,8 @@ function classify(tx, platforms) {
 return { compilePlatforms, classify };
 })());
 // extract.js
-Object.assign(JSAK, (() => {
-const { classify } = JSAK;
+Object.assign(ENGINE, (() => {
+const { classify } = ENGINE;
 
 const WSOL = 'So11111111111111111111111111111111111111112';
 const LAMPORTS_PER_SOL = 1e9;
@@ -265,7 +265,7 @@ function extractTrades(txs, wallet, platforms) {
 return { WSOL, extractTrade, extractTrades };
 })());
 // pnl.js
-Object.assign(JSAK, (() => {
+Object.assign(ENGINE, (() => {
 // FIFO cost-basis accounting per token, all values in SOL.
 // Sells beyond what the wallet bought inside the window (pre-window buys, transfers in)
 // are tracked as "unmatched" and kept out of realized PnL rather than counted as free profit.
@@ -352,8 +352,8 @@ function buildPositions(trades) {
 return { buildPositions };
 })());
 // metrics.js
-Object.assign(JSAK, (() => {
-const { buildPositions } = JSAK;
+Object.assign(ENGINE, (() => {
+const { buildPositions } = ENGINE;
 
 const DAY = 86400;
 
@@ -452,8 +452,8 @@ function rankWallets(results) {
 return { analyzeWallet, scoreWallet, rankWallets };
 })());
 // discover.js
-Object.assign(JSAK, (() => {
-const { extractTrade } = JSAK;
+Object.assign(ENGINE, (() => {
+const { extractTrade } = ENGINE;
 
 // Finds wallets that bought several of the given winning tokens, and how early they got in.
 // txsByMint: { mint: heliusTx[] } — the history of each token's mint address.
@@ -493,7 +493,7 @@ function discoverFromMints(txsByMint) {
 return { discoverFromMints };
 })());
 // helius.js
-Object.assign(JSAK, (() => {
+Object.assign(ENGINE, (() => {
 const { mkdir, readFile, writeFile } = {};
 const { join } = {};
 
@@ -588,7 +588,7 @@ async function mapPool(items, concurrency, fn) {
 return { Helius, mapPool };
 })());
 // demo.js
-Object.assign(JSAK, (() => {
+Object.assign(ENGINE, (() => {
 // Synthetic trade data for previewing the dashboard without an API key.
 // Every address is prefixed "DEMo" so it can't be mistaken for a real wallet.
 
@@ -663,7 +663,124 @@ function generateDemo({ days = 90, seed = 7, now = Math.floor(Date.now() / 1000)
 
 return { generateDemo };
 })());
-const { Helius, mapPool, extractTrades, analyzeWallet, rankWallets, discoverFromMints, compilePlatforms, generateDemo } = JSAK;
+// zip.js
+Object.assign(ENGINE, (() => {
+// Minimal ZIP writer (stored entries, no compression). Runs in Node and the browser,
+// so the CLI and the app's own "Download app" button produce the same archive.
+
+const CRC_TABLE = new Uint32Array(256).map((_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c;
+});
+
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+// files: [{ name, data: string | Uint8Array }]; names use forward slashes.
+function createZip(files, date = new Date()) {
+  const enc = new TextEncoder();
+  const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | (date.getSeconds() >> 1);
+  const dosDate = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+  const locals = [];
+  const centrals = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const name = enc.encode(file.name);
+    const data = typeof file.data === 'string' ? enc.encode(file.data) : file.data;
+    const crc = crc32(data);
+
+    const local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0, 0x04034b50, true);
+    local.setUint16(4, 20, true); // version needed
+    local.setUint16(6, 0x0800, true); // UTF-8 names
+    local.setUint16(8, 0, true); // stored
+    local.setUint16(10, dosTime, true);
+    local.setUint16(12, dosDate, true);
+    local.setUint32(14, crc, true);
+    local.setUint32(18, data.length, true);
+    local.setUint32(22, data.length, true);
+    local.setUint16(26, name.length, true);
+    locals.push(new Uint8Array(local.buffer), name, data);
+
+    const central = new DataView(new ArrayBuffer(46));
+    central.setUint32(0, 0x02014b50, true);
+    central.setUint16(4, 0x031e, true); // made by: Unix, spec 3.0
+    central.setUint16(6, 20, true);
+    central.setUint16(8, 0x0800, true);
+    central.setUint16(10, 0, true);
+    central.setUint16(12, dosTime, true);
+    central.setUint16(14, dosDate, true);
+    central.setUint32(16, crc, true);
+    central.setUint32(20, data.length, true);
+    central.setUint32(24, data.length, true);
+    central.setUint16(28, name.length, true);
+    central.setUint32(38, (0o100644 << 16) >>> 0, true); // regular file, rw-r--r--
+    central.setUint32(42, offset, true);
+    centrals.push(new Uint8Array(central.buffer), name);
+
+    offset += 30 + name.length + data.length;
+  }
+
+  const centralSize = centrals.reduce((s, b) => s + b.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, centralSize, true);
+  end.setUint32(16, offset, true);
+
+  const parts = [...locals, ...centrals, new Uint8Array(end.buffer)];
+  const out = new Uint8Array(parts.reduce((s, b) => s + b.length, 0));
+  let pos = 0;
+  for (const p of parts) {
+    out.set(p, pos);
+    pos += p.length;
+  }
+  return out;
+}
+
+const HOW_TO_OPEN = `Wallet Scout
+============
+
+Wallet Scout runs in your web browser. There is nothing to install.
+
+WINDOWS
+1. Right-click WalletScout.zip and choose "Extract All...", then click Extract.
+2. Open the extracted Wallet Scout folder and double-click Wallet Scout.html.
+3. If Windows asks how to open it, choose Microsoft Edge or Google Chrome.
+Tip: right-click Wallet Scout.html > Send to > Desktop (create shortcut) for a desktop icon.
+
+MAC
+1. Double-click WalletScout.zip. A Wallet Scout folder appears next to it.
+2. Open the folder and double-click Wallet Scout.html. It opens in Safari or your default browser.
+3. If it opens in a text editor instead, right-click Wallet Scout.html > Open With > Safari (or Chrome).
+Tip: drag Wallet Scout.html to the right side of the Dock for one-click access.
+
+FIRST SCAN
+1. Get a free API key at https://dashboard.helius.dev and paste it into the app.
+2. Pick "Winning tokens" and paste token mint addresses (one per line),
+   or pick "Wallet list" and paste wallets you want to check.
+3. Click Run scan.
+
+The app opens on demo data. Those wallets are made up and are clearly labeled.
+Your API key is saved only in your own browser.
+`;
+
+function buildAppZip(html) {
+  return createZip([
+    { name: 'Wallet Scout/Wallet Scout.html', data: html },
+    { name: 'Wallet Scout/How to open.txt', data: HOW_TO_OPEN.replace(/\n/g, '\r\n') },
+  ]);
+}
+
+return { createZip, HOW_TO_OPEN, buildAppZip };
+})());
+const { Helius, mapPool, extractTrades, analyzeWallet, rankWallets, discoverFromMints, compilePlatforms, generateDemo, buildAppZip } = ENGINE;
 const SOURCE = '<!doctype html>\n' + document.documentElement.outerHTML;
 const PLATFORMS = compilePlatforms({"_comment":"Venues are where the swap executes (on-chain programs). Frontends are the app the trader used, detected by the fee account the app charges. Fill in frontend feeAccounts by opening a known Phantom / Fomo swap on a block explorer and copying the account that receives the app fee.","venues":{"pumpfun":{"label":"Pump.fun","sources":["PUMP_FUN","PUMP_AMM"],"programIds":["6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P","pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"]},"jupiter":{"label":"Jupiter","sources":["JUPITER"],"programIds":["JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"]},"raydium":{"label":"Raydium","sources":["RAYDIUM"],"programIds":[]},"meteora":{"label":"Meteora","sources":["METEORA"],"programIds":[]}},"frontends":{"phantom":{"label":"Phantom","feeAccounts":[]},"fomo":{"label":"Fomo","feeAccounts":[]}}});
 let DATA = null;
@@ -678,19 +795,20 @@ const dur = (s) => s == null ? '–' : s < 60 ? Math.round(s) + 's' : s < 3600 ?
 const cls = (v) => v > 0 ? 'pos' : v < 0 ? 'neg' : '';
 const label = (id) => DATA.labels[id] || id;
 const link = (kind, addr, text) => DATA.demo ? text : '<a href="https://solscan.io/' + kind + '/' + esc(addr) + '" target="_blank" rel="noopener">' + text + '</a>';
+const KEY_STORE = 'walletScout.heliusKey';
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 
 // ---------- file saving: the Claude viewer's downloads capability when present, a plain download otherwise ----------
 let downloads = null;
 if (window.claude?.use) window.claude.use('downloads').then((d) => (downloads = d)).catch(() => {});
-async function saveFile(filename, text, type) {
+async function saveFile(filename, data, type) {
   if (downloads) {
-    try { await downloads.save({ filename, data: text }); log('Saved ' + filename, 'ok'); }
+    try { await downloads.save({ filename, data }); log('Saved ' + filename, 'ok'); }
     catch (e) { if (e?.code !== 'declined') log('Could not save ' + filename + ': ' + (e?.message || e), 'err'); }
     return;
   }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.href = URL.createObjectURL(new Blob([data], { type }));
   a.download = filename; document.body.append(a); a.click(); a.remove();
 }
 
@@ -785,8 +903,8 @@ $('csv').addEventListener('click', () => {
   const lines = filtered().map((w) => [w.wallet, w.score, w.realizedPnlSol.toFixed(4), w.roi ?? '', w.winRate ?? '', w.closedPositions, w.flags.join('|')].join(','));
   saveFile('watchlist.csv', head + '\n' + lines.join('\n'), 'text/csv');
 });
-$('json').addEventListener('click', () => saveFile('jsak-results.json', JSON.stringify(DATA, (_, v) => (v === Infinity ? 'Infinity' : v), 2), 'application/json'));
-$('getApp').addEventListener('click', () => saveFile('jsak.html', SOURCE, 'text/html'));
+$('json').addEventListener('click', () => saveFile('wallet-scout-results.json', JSON.stringify(DATA, (_, v) => (v === Infinity ? 'Infinity' : v), 2), 'application/json'));
+$('getApp').addEventListener('click', () => saveFile('WalletScout.zip', buildAppZip(SOURCE), 'application/zip'));
 
 // ---------- scanning ----------
 let mode = 'mints';
@@ -807,8 +925,8 @@ function log(msg, kind) {
   el.scrollTop = el.scrollHeight;
 }
 
-$('key').value = store.get('jsak.heliusKey') || '';
-$('key').addEventListener('change', () => store.set('jsak.heliusKey', $('key').value.trim()));
+$('key').value = store.get(KEY_STORE) || store.get('jsak.heliusKey') || '';
+$('key').addEventListener('change', () => store.set(KEY_STORE, $('key').value.trim()));
 $('loadDemo').addEventListener('click', () => { setData(buildDemo()); log('Loaded demo data.'); });
 
 function buildDemo() {
@@ -825,7 +943,7 @@ $('run').addEventListener('click', async () => {
   if (!apiKey) return log('Add your Helius API key first. A free one is at dashboard.helius.dev.', 'err');
   if (!addrs.length) return log(mode === 'mints' ? 'Paste at least one token mint address.' : 'Paste at least one wallet address.', 'err');
   if (bad.length) return log("These don't look like Solana addresses: " + bad.slice(0, 3).join(', '), 'err');
-  store.set('jsak.heliusKey', apiKey);
+  store.set(KEY_STORE, apiKey);
 
   const days = Math.max(1, +$('days').value || 90);
   const sinceTs = Math.floor(Date.now() / 1000) - days * 86400;
