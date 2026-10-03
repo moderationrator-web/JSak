@@ -219,3 +219,7 @@ __marimo__/
 
 # wallet-scout output (API pulls, rankings)
 data/
+
+# pmscout outputs
+out/
+out-demo/
