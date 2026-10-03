@@ -7,7 +7,7 @@ import { Helius } from '../src/helius.js';
 import { analyzeWallet } from '../src/metrics.js';
 import { compilePlatforms } from '../src/platforms.js';
 import { buildPositions } from '../src/pnl.js';
-import { renderReport } from '../src/report.js';
+import { bundleEngine, renderApp } from '../src/report.js';
 
 const W = 'Wa11et1111111111111111111111111111111111111';
 const MINT = 'Mint111111111111111111111111111111111111pump';
@@ -153,7 +153,15 @@ test('demo data renders into a self-contained report', () => {
   const results = generateDemo({ days: 90, now: 1_750_000_000 }).map(({ wallet, archetype, trades }) => ({ ...analyzeWallet(wallet, trades), archetype }));
   assert.ok(results.length >= 20);
   assert.ok(results.some((r) => r.flags.includes('bot')));
-  const html = renderReport({ generatedAt: 'x', days: 90, demo: true, labels: platforms.labels, frontendIds: ['phantom'], wallets: results });
+  const html = renderApp({ generatedAt: 'x', days: 90, demo: true, labels: platforms.labels, frontendIds: ['phantom'], wallets: results });
+  assert.match(html, /^<!doctype html>/);
   assert.match(html, /Synthetic demo data/);
-  assert.doesNotMatch(html, /__DATA__|__TITLE__/);
+  assert.doesNotMatch(html, /__(DATA|TITLE|ENGINE|PLATFORMS)__/);
+  assert.match(renderApp(null, { standalone: false }), /^<title>/);
+});
+
+test('bundled engine runs outside Node modules and matches the CLI', () => {
+  const JSAK = new Function(bundleEngine() + '\nreturn JSAK;')();
+  const trades = generateDemo({ now: 1_750_000_000 })[0].trades;
+  assert.deepEqual(JSAK.analyzeWallet('w', trades), analyzeWallet('w', trades));
 });

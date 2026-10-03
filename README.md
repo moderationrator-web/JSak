@@ -2,10 +2,23 @@
 
 `jsak` ranks Solana memecoin traders (Pump.fun, Fomo, Phantom) by **realized** performance over a lookback window (default 90 days). It produces a sortable HTML leaderboard and a CSV watchlist you can copy-trade or monitor.
 
-Node ≥ 20, no dependencies. Data comes from the [Helius](https://dashboard.helius.dev) enhanced-transactions API (a free key is enough to start).
+Data comes from the [Helius](https://dashboard.helius.dev) enhanced-transactions API (a free key is enough to start).
+
+## The app
+
+`dist/jsak.html` is the whole tool in one file. Download it, double-click to open it in your browser, and:
+
+1. Pick **Winning tokens** (paste the mints of top Pump.fun runners) or **Wallet list**.
+2. Paste your Helius API key. It's saved only in that browser.
+3. Click **Run scan**. It finds the buyers, pulls each wallet's history, and ranks them.
+
+It opens on synthetic demo data so you can explore first. Results export as a CSV watchlist or JSON. Rebuild it with `npm run app`.
+
+## Command line
+
+Node ≥ 20, no dependencies.
 
 ```bash
-npm run demo                          # preview dashboard on synthetic data → data/demo-report.html
 export HELIUS_API_KEY=...
 node src/cli.js discover --mints mints.txt          # wallets that bought several winners, early
 node src/cli.js analyze --wallets data/candidates.json   # → data/analysis.json + data/report.html
@@ -20,7 +33,7 @@ node src/cli.js analyze --wallets data/candidates.json   # → data/analysis.jso
    - **Metrics**: realized PnL, ROI, win rate (closed positions), profit factor, median token ROI, median hold time, trades per active day, open cost, best/worst token, and venue and frontend mix.
    - **Flags**: `bot` (>150 trades/active day or median hold <20s, which a person can't copy), `low-sample` (<10 closed positions), `one-hit` (one token is >80% of gross profit), `truncated` (hit `--max-pages`).
    - **Score (0–100)**: 35% log-scaled PnL, 25% win rate, 20% profit factor, 20% sample size; ×0.3 for bots, ×0.6 for one-hit wallets. Wallets that aren't profitable score 0. See `src/metrics.js`.
-3. **Report**: a self-contained `report.html` with filters (hide bots and low-sample wallets, minimum win rate, frontend), sortable columns, a per-wallet breakdown with Solscan links, and CSV watchlist export.
+3. **Report**: the app (above) with the results embedded, written to `data/report.html`, with filters (hide bots and low-sample wallets, minimum win rate, frontend), sortable columns, a per-wallet breakdown with Solscan links, and CSV watchlist export.
 
 ## Platform attribution
 

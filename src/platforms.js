@@ -1,13 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-
-const DEFAULT_PATH = fileURLToPath(new URL('../config/platforms.json', import.meta.url));
-
-export function loadPlatforms(path = DEFAULT_PATH) {
-  const raw = JSON.parse(readFileSync(path, 'utf8'));
-  return compilePlatforms(raw);
-}
-
 export function compilePlatforms(raw) {
   const venues = Object.entries(raw.venues || {}).map(([id, v]) => ({
     id,

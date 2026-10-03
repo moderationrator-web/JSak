@@ -1,14 +1,15 @@
 #!/usr/bin/env node
+import { readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-import { generateDemo } from './demo.js';
 import { discoverFromMints } from './discover.js';
 import { extractTrades } from './extract.js';
 import { Helius, mapPool } from './helius.js';
 import { analyzeWallet, rankWallets } from './metrics.js';
-import { loadPlatforms } from './platforms.js';
-import { renderReport } from './report.js';
+import { compilePlatforms } from './platforms.js';
+import { renderApp, renderReport } from './report.js';
 
 const USAGE = `jsak — rank Solana memecoin wallets by realized performance
 
@@ -20,14 +21,19 @@ Usage:
       Pull each wallet's swaps, compute FIFO PnL, score and rank. <file> is a
       newline list of addresses or the candidates.json written by discover.
   jsak report --in data/analysis.json [--out data/report.html]
-  jsak demo [--out data/demo-report.html]
-      Build the dashboard from synthetic data (no API key needed).
+  jsak app [--out data/jsak.html]
+      Build the standalone app: open it in a browser, paste a Helius key and
+      wallets or winning tokens, and it runs the scan itself. Opens on demo data.
 
 Options:
   --platforms <file>   Venue / frontend config (default config/platforms.json)
 
 Env:
   HELIUS_API_KEY       Required for discover and analyze.`;
+
+function loadPlatforms(path = fileURLToPath(new URL('../config/platforms.json', import.meta.url))) {
+  return compilePlatforms(JSON.parse(readFileSync(path, 'utf8')));
+}
 
 async function write(path, content) {
   await mkdir(dirname(path), { recursive: true });
@@ -82,10 +88,9 @@ async function main() {
   const concurrency = Number(values.concurrency);
   const client = () => new Helius({ apiKey: process.env.HELIUS_API_KEY });
 
-  if (cmd === 'demo') {
-    const results = generateDemo({ days }).map(({ wallet, archetype, trades }) => ({ ...analyzeWallet(wallet, trades), archetype }));
-    const analysis = buildAnalysis(results, days, platforms, { demo: true });
-    await write(values.out || 'data/demo-report.html', renderReport(analysis));
+  if (cmd === 'app' || cmd === 'demo') {
+    // With no embedded results the app builds its demo data on open.
+    await write(values.out || 'data/jsak.html', renderApp(null));
     return;
   }
 
