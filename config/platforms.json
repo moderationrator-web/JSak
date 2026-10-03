@@ -1,0 +1,38 @@
+{
+  "_comment": "Venues are where the swap executes (on-chain programs). Frontends are the app the trader used, detected by the fee account the app charges. Fill in frontend feeAccounts by opening a known Phantom / Fomo swap on a block explorer and copying the account that receives the app fee.",
+  "venues": {
+    "pumpfun": {
+      "label": "Pump.fun",
+      "sources": ["PUMP_FUN", "PUMP_AMM"],
+      "programIds": [
+        "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P",
+        "pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"
+      ]
+    },
+    "jupiter": {
+      "label": "Jupiter",
+      "sources": ["JUPITER"],
+      "programIds": ["JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"]
+    },
+    "raydium": {
+      "label": "Raydium",
+      "sources": ["RAYDIUM"],
+      "programIds": []
+    },
+    "meteora": {
+      "label": "Meteora",
+      "sources": ["METEORA"],
+      "programIds": []
+    }
+  },
+  "frontends": {
+    "phantom": {
+      "label": "Phantom",
+      "feeAccounts": []
+    },
+    "fomo": {
+      "label": "Fomo",
+      "feeAccounts": []
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "jsak",
+  "version": "0.1.0",
+  "description": "Solana memecoin wallet analyzer: ranks Pump.fun / Fomo / Phantom traders by realized performance over a lookback window.",
+  "type": "module",
+  "bin": {
+    "jsak": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "app": "node src/cli.js app --out dist/jsak.html"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
