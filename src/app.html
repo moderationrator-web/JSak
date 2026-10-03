@@ -76,7 +76,7 @@ tbody tr.sel { background: var(--sunk); box-shadow: inset 3px 0 var(--accent); }
 .bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); vertical-align: middle; }
 .empty { padding: 28px; text-align: center; color: var(--muted); }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
-.mix > div { display: grid; grid-template-columns: 90px 1fr 48px; gap: 8px; align-items: center; margin: 4px 0; font-size: 13px; }
+.mix > div { display: grid; grid-template-columns: minmax(90px, max-content) 1fr 48px; gap: 8px; align-items: center; margin: 4px 0; font-size: 13px; }
 .mix .track { background: var(--sunk); border-radius: 3px; height: 8px; overflow: hidden; }
 .mix .track span { display: block; height: 100%; background: var(--accent); }
 dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
@@ -132,7 +132,8 @@ a { color: var(--accent); }
     <label><input type="checkbox" id="hideBots" checked> Hide bots</label>
     <label><input type="checkbox" id="hideLow"> Hide low-sample</label>
     <label for="minWin">Min win rate % <input type="number" id="minWin" value="0" min="0" max="100"></label>
-    <label for="fe">App <select id="fe"><option value="">Any</option></select></label>
+    <label for="venue">Traded on <select id="venue"><option value="">Any</option></select></label>
+    <label for="fe">Placed with <select id="fe"><option value="">Any</option></select></label>
     <button type="button" class="btn" id="csv">Export watchlist CSV</button>
     <button type="button" class="btn" id="json">Save results JSON</button>
   </div>
@@ -156,7 +157,7 @@ const num = (v) => v == null ? '–' : v === Infinity || v === 'Infinity' ? '∞
 const short = (a) => a.slice(0, 4) + '…' + a.slice(-4);
 const dur = (s) => s == null ? '–' : s < 60 ? Math.round(s) + 's' : s < 3600 ? Math.round(s / 60) + 'm' : s < 86400 ? (s / 3600).toFixed(1) + 'h' : (s / 86400).toFixed(1) + 'd';
 const cls = (v) => v > 0 ? 'pos' : v < 0 ? 'neg' : '';
-const label = (id) => DATA.labels[id] || id;
+const label = (id) => PLATFORMS.labels[id] || DATA.labels?.[id] || id;
 const link = (kind, addr, text) => DATA.demo ? text : '<a href="https://solscan.io/' + kind + '/' + esc(addr) + '" target="_blank" rel="noopener">' + text + '</a>';
 const KEY_STORE = 'walletScout.heliusKey';
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
@@ -199,18 +200,20 @@ function setData(next) {
   chip.className = 'chip ' + (DATA.demo ? 'demo' : 'live');
   chip.textContent = DATA.demo ? 'Demo data' : 'Live · ' + new Date(DATA.generatedAt).toLocaleString();
   $('banner').innerHTML = DATA.demo ? '<div class="panel note" style="max-width:none"><strong style="color:var(--warn)">Synthetic demo data.</strong> These ' + DATA.wallets.length + ' wallets and their tokens are generated to show how the scout works; none exist on-chain. Run a scan above for real results.</div>' : '';
-  const fe = $('fe'); fe.innerHTML = '<option value="">Any</option>';
-  for (const f of [...(DATA.frontendIds || []), 'direct']) fe.insertAdjacentHTML('beforeend', '<option value="' + esc(f) + '">' + esc(label(f)) + '</option>');
+  const options = (id, ids) => { $(id).innerHTML = '<option value="">Any</option>' + ids.map((v) => '<option value="' + esc(v) + '">' + esc(label(v)) + '</option>').join(''); };
+  options('venue', [...PLATFORMS.venues.map((v) => v.id), 'other']);
+  options('fe', [...PLATFORMS.frontends.map((f) => f.id), 'direct']);
   render();
 }
 
 function filtered() {
-  const q = $('q').value.trim(), minWin = +$('minWin').value / 100, fe = $('fe').value;
+  const q = $('q').value.trim(), minWin = +$('minWin').value / 100, fe = $('fe').value, venue = $('venue').value;
   return DATA.wallets.filter((w) =>
     (!q || w.wallet.includes(q)) &&
     !($('hideBots').checked && w.flags.includes('bot')) &&
     !($('hideLow').checked && w.flags.includes('low-sample')) &&
     (w.winRate ?? 0) >= minWin &&
+    (!venue || (w.venues[venue] || 0) / (w.volumeSol || 1) >= 0.5) &&
     (!fe || (w.frontends[fe] || 0) / (w.volumeSol || 1) >= 0.5));
 }
 
@@ -246,7 +249,7 @@ function detail(w) {
     '<dt>Active days</dt><dd>' + w.activeDays + '</dd><dt>Trades per active day</dt><dd>' + w.tradesPerDay.toFixed(1) + '</dd>' +
     '<dt>Best token</dt><dd>' + (w.best ? sol(w.best.realized) + ' SOL (' + pct(w.best.roi) + ')' : '–') + '</dd>' +
     '<dt>Worst token</dt><dd>' + (w.worst ? sol(w.worst.realized) + ' SOL (' + pct(w.worst.roi) + ')' : '–') + '</dd></dl>' +
-    '<div class="mix"><span class="eyebrow">Venue, by volume</span>' + mix(w.venues, w.volumeSol) + '<br><span class="eyebrow">App, by volume</span>' + mix(w.frontends, w.volumeSol) + '</div></div>' +
+    '<div class="mix"><span class="eyebrow">Traded on, by volume</span>' + mix(w.venues, w.volumeSol) + '<br><span class="eyebrow">Placed with, by volume</span>' + mix(w.frontends, w.volumeSol) + '</div></div>' +
     '<div class="tablewrap"><table><thead><tr><th>Token</th><th>Status</th><th>Buys/Sells</th><th>Bought SOL</th><th>Realized SOL</th><th>ROI</th><th>Avg hold</th></tr></thead><tbody>' +
     w.positions.slice(0, 60).map(row).join('') + '</tbody></table></div></div>';
 }
@@ -260,7 +263,7 @@ $('rows').addEventListener('click', (e) => {
   selected = tr.dataset.w; render(); detail(DATA.wallets.find((w) => w.wallet === selected));
   $('detailWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
-for (const id of ['q', 'hideBots', 'hideLow', 'minWin', 'fe']) $(id).addEventListener('input', render);
+for (const id of ['q', 'hideBots', 'hideLow', 'minWin', 'venue', 'fe']) $(id).addEventListener('input', render);
 $('csv').addEventListener('click', () => {
   const head = 'wallet,score,realized_sol,roi,win_rate,closed_positions,flags';
   const lines = filtered().map((w) => [w.wallet, w.score, w.realizedPnlSol.toFixed(4), w.roi ?? '', w.winRate ?? '', w.closedPositions, w.flags.join('|')].join(','));
