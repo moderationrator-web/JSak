@@ -217,6 +217,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# wallet-scout output (API pulls, rankings)
+data/
+
 # pmscout outputs
 out/
 out-demo/

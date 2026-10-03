@@ -1,0 +1,17 @@
+{
+  "name": "wallet-scout",
+  "version": "0.1.0",
+  "description": "Solana memecoin wallet analyzer: ranks Pump.fun / Fomo / Phantom traders by realized performance over a lookback window.",
+  "type": "module",
+  "bin": {
+    "wallet-scout": "src/cli.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "app": "node src/cli.js app --out dist/wallet-scout.html"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}

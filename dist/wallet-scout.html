@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+</head>
+<body>
+<title>Wallet Scout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a scout's desk. Scan controls on top, ranked leaderboard below, selected wallet's ledger at the bottom. */
+:root {
+  --bg: #f3f4f6; --surface: #ffffff; --sunk: #eceef2; --text: #15171c; --muted: #636875; --line: #dfe2e8;
+  --accent: #5a43c9; --accent-ink: #ffffff; --pos: #187a49; --neg: #bf3326; --warn: #9a5c00;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101115; --surface: #181a20; --sunk: #22252d; --text: #e9eaee; --muted: #9a9fac; --line: #2c2f38;
+    --accent: #a594ff; --accent-ink: #15171c; --pos: #4fc78b; --neg: #ff7466; --warn: #f0b24a; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101115; --surface: #181a20; --sunk: #22252d; --text: #e9eaee; --muted: #9a9fac; --line: #2c2f38;
+  --accent: #a594ff; --accent-ink: #15171c; --pos: #4fc78b; --neg: #ff7466; --warn: #f0b24a; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.5 var(--body); }
+main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; display: grid; gap: 16px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
+h1 { font: 800 26px/1.1 var(--display); letter-spacing: -0.01em; margin: 0; }
+h1 span { color: var(--accent); }
+h2 { font: 600 15px/1.3 var(--display); margin: 0; text-wrap: balance; }
+.sub { color: var(--muted); }
+.eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.scan { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .scan { grid-template-columns: 1fr; } .log { height: 120px; } }
+.field { display: grid; gap: 4px; }
+.field label, .lbl { font-size: 12px; color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+input, select, textarea, button { font: inherit; color: var(--text); }
+input[type=text], input[type=password], input[type=number], input[type=search], select, textarea {
+  background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 9px; min-width: 0;
+}
+textarea { width: 100%; min-height: 128px; resize: vertical; font: 12.5px/1.5 var(--mono); }
+input[type=number] { width: 84px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.seg button { background: transparent; border: 0; padding: 6px 12px; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--sunk); color: var(--text); font-weight: 600; }
+.btn { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+.btn:hover { background: var(--sunk); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: 0.55; cursor: progress; }
+.log { font: 12px/1.55 var(--mono); background: var(--sunk); border-radius: 6px; padding: 8px 10px; height: 168px; overflow: auto; white-space: pre-wrap; word-break: break-all; color: var(--muted); }
+.log .err { color: var(--neg); } .log .ok { color: var(--pos); }
+.note { font-size: 12.5px; color: var(--muted); max-width: 65ch; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--sunk); color: var(--muted); }
+.chip.demo { color: var(--warn); }
+.chip.live { color: var(--pos); }
+.chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.kpi .v { font: 600 22px/1.2 var(--display); font-variant-numeric: tabular-nums; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+.controls label { color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+th:nth-child(-n+2), td:nth-child(-n+2) { text-align: left; }
+th { font-size: 12px; color: var(--muted); font-weight: 500; cursor: pointer; user-select: none; background: var(--surface); }
+th[data-dir]::after { content: attr(data-dir); margin-left: 4px; color: var(--accent); }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--sunk); }
+tbody tr.sel { background: var(--sunk); box-shadow: inset 3px 0 var(--accent); }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+.flag { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 10px; background: var(--sunk); color: var(--warn); margin-left: 4px; }
+.bar { display: inline-block; height: 6px; border-radius: 3px; background: var(--accent); vertical-align: middle; }
+.empty { padding: 28px; text-align: center; color: var(--muted); }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.mix > div { display: grid; grid-template-columns: minmax(90px, max-content) 1fr 48px; gap: 8px; align-items: center; margin: 4px 0; font-size: 13px; }
+.mix .track { background: var(--sunk); border-radius: 3px; height: 8px; overflow: hidden; }
+.mix .track span { display: block; height: 100%; background: var(--accent); }
+dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 13px; }
+dt { color: var(--muted); } dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+a { color: var(--accent); }
+#detailWrap h2 { word-break: break-all; font-family: var(--mono); font-weight: 500; font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) { tbody tr { transition: background 0.12s; } }
+</style>
+
+<main>
+  <header>
+    <h1>Wallet <span>Scout</span></h1>
+    <span class="sub">Find the best Pump.fun, Fomo and Phantom traders</span>
+    <span id="modeChip" class="chip"></span>
+  </header>
+
+  <section class="panel scan" aria-labelledby="scanTitle">
+    <div style="display:grid;gap:12px;min-width:0">
+      <h2 id="scanTitle">Scan wallets</h2>
+      <div class="row">
+        <div class="seg" role="group" aria-label="Input type">
+          <button type="button" id="modeMints" aria-pressed="true">Winning tokens</button>
+          <button type="button" id="modeWallets" aria-pressed="false">Wallet list</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="input" id="inputLabel">Token mint addresses, one per line</label>
+        <textarea id="input" spellcheck="false" placeholder="e.g. paste the mints of the last 90 days' top Pump.fun runners"></textarea>
+      </div>
+      <div class="row">
+        <div class="field" style="flex:1 1 220px"><label for="key">Helius API key</label><input type="password" id="key" autocomplete="off" placeholder="free at dashboard.helius.dev"></div>
+        <div class="field"><label for="days">Days back</label><input type="number" id="days" value="90" min="1" max="365"></div>
+        <div class="field" id="topField"><label for="top">Wallets to analyze</label><input type="number" id="top" value="30" min="1" max="500"></div>
+        <button type="button" class="btn primary" id="run">Run scan</button>
+      </div>
+      <p class="note">Your key is saved only in this browser. Scans call the Helius API directly from this page, so download the app, unzip it and open Wallet Scout.html in your browser; previews inside Claude can't reach outside sites.</p>
+    </div>
+    <div style="display:grid;gap:8px;align-content:start;min-width:0">
+      <span class="eyebrow">Progress</span>
+      <div class="log" id="log" aria-live="polite"><div>Paste token mints or wallets, add your key, then Run scan. Progress shows here.</div></div>
+      <div class="row">
+        <button type="button" class="btn" id="getApp">Download app (.zip)</button>
+        <button type="button" class="btn" id="loadDemo">Load demo data</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="banner"></div>
+  <section class="kpis" id="kpis"></section>
+
+  <div class="controls">
+    <input type="search" id="q" placeholder="Search wallet" aria-label="Search wallet">
+    <label><input type="checkbox" id="hideBots" checked> Hide bots</label>
+    <label><input type="checkbox" id="hideLow"> Hide low-sample</label>
+    <label for="minWin">Min win rate % <input type="number" id="minWin" value="0" min="0" max="100"></label>
+    <label for="venue">Traded on <select id="venue"><option value="">Any</option></select></label>
+    <label for="fe">Placed with <select id="fe"><option value="">Any</option></select></label>
+    <button type="button" class="btn" id="csv">Export watchlist CSV</button>
+    <button type="button" class="btn" id="json">Save results JSON</button>
+  </div>
+
+  <div class="tablewrap"><table><thead><tr id="head"></tr></thead><tbody id="rows"></tbody></table></div>
+  <section class="panel" id="detailWrap" hidden></section>
+</main>
+
+<script type="module">
+const ENGINE = {};
+// platforms.js
+Object.assign(ENGINE, (() => {
+function compilePlatforms(raw) {
+  const venues = Object.entries(raw.venues || {}).map(([id, v]) => ({
+    id,
+    label: v.label || id,
+    sources: new Set(v.sources || []),
+    programIds: new Set(v.programIds || []),
+  }));
+  const frontends = Object.entries(raw.frontends || {}).map(([id, f]) => ({
+    id,
+    label: f.label || id,
+    feeAccounts: new Set(f.feeAccounts || []),
+  }));
+  const labels = {
+    ...Object.fromEntries([...venues, ...frontends].map((p) => [p.id, p.label])),
+    other: 'Other exchange',
+    direct: 'Other wallet / no app',
+  };
+  return { venues, frontends, labels };
+}
+
+function programIdsOf(tx) {
+  const ids = new Set();
+  for (const ix of tx.instructions || []) {
+    ids.add(ix.programId);
+    for (const inner of ix.innerInstructions || []) ids.add(inner.programId);
+  }
+  return ids;
+}
+
+function recipientsOf(tx) {
+  const to = new Set();
+  for (const t of tx.nativeTransfers || []) to.add(t.toUserAccount);
+  for (const t of tx.tokenTransfers || []) to.add(t.toUserAccount);
+  return to;
+}
+
+// Returns { venue, frontend } ids; 'other' / 'direct' when nothing matches.
+function classify(tx, platforms) {
+  const programs = programIdsOf(tx);
+  let venue = 'other';
+  for (const v of platforms.venues) {
+    if (v.sources.has(tx.source) || [...v.programIds].some((p) => programs.has(p))) {
+      venue = v.id;
+      break;
+    }
+  }
+  const recipients = recipientsOf(tx);
+  let frontend = 'direct';
+  for (const f of platforms.frontends) {
+    if ([...f.feeAccounts].some((a) => recipients.has(a))) {
+      frontend = f.id;
+      break;
+    }
+  }
+  return { venue, frontend };
+}
+
+return { compilePlatforms, classify };
+})());
+// extract.js
+Object.assign(ENGINE, (() => {
+const { classify } = ENGINE;
+
+const WSOL = 'So11111111111111111111111111111111111111112';
+const LAMPORTS_PER_SOL = 1e9;
+const EPS = 1e-12;
+
+// Turns one Helius enhanced transaction into the wallet's SOL<->token trade, if it is one.
+// Works from balance deltas rather than the swap event so it handles every venue the same way.
+// The SOL delta includes network fees and token-account rent, so costs are slightly conservative.
+function extractTrade(tx, wallet, platforms) {
+  if (tx.transactionError) return null;
+
+  let sol = 0;
+  const tokens = new Map();
+  for (const acct of tx.accountData || []) {
+    if (acct.account === wallet) sol += (acct.nativeBalanceChange || 0) / LAMPORTS_PER_SOL;
+    for (const change of acct.tokenBalanceChanges || []) {
+      if (change.userAccount !== wallet) continue;
+      const { tokenAmount, decimals } = change.rawTokenAmount;
+      const amount = Number(tokenAmount) / 10 ** decimals;
+      if (change.mint === WSOL) sol += amount;
+      else tokens.set(change.mint, (tokens.get(change.mint) || 0) + amount);
+    }
+  }
+
+  const moved = [...tokens].filter(([, amount]) => Math.abs(amount) > EPS);
+  if (moved.length !== 1 || Math.abs(sol) < EPS) return null;
+  const [mint, amount] = moved[0];
+  // A buy spends SOL for tokens, a sell the reverse; same-sign moves are transfers or airdrops.
+  if (Math.sign(amount) === Math.sign(sol)) return null;
+
+  const { venue, frontend } = platforms ? classify(tx, platforms) : { venue: 'other', frontend: 'direct' };
+  return {
+    signature: tx.signature,
+    ts: tx.timestamp,
+    side: amount > 0 ? 'buy' : 'sell',
+    mint,
+    qty: Math.abs(amount),
+    sol: Math.abs(sol),
+    venue,
+    frontend,
+  };
+}
+
+function extractTrades(txs, wallet, platforms) {
+  const trades = [];
+  for (const tx of txs) {
+    const trade = extractTrade(tx, wallet, platforms);
+    if (trade) trades.push(trade);
+  }
+  return trades.sort((a, b) => a.ts - b.ts);
+}
+
+return { WSOL, extractTrade, extractTrades };
+})());
+// pnl.js
+Object.assign(ENGINE, (() => {
+// FIFO cost-basis accounting per token, all values in SOL.
+// Sells beyond what the wallet bought inside the window (pre-window buys, transfers in)
+// are tracked as "unmatched" and kept out of realized PnL rather than counted as free profit.
+
+const DUST_FRACTION = 0.01;
+
+function buildPositions(trades) {
+  const byMint = new Map();
+  for (const t of [...trades].sort((a, b) => a.ts - b.ts)) {
+    let p = byMint.get(t.mint);
+    if (!p) {
+      p = {
+        mint: t.mint,
+        lots: [],
+        held: 0,
+        peakHeld: 0,
+        buys: 0,
+        sells: 0,
+        boughtSol: 0,
+        soldSol: 0,
+        matchedCost: 0,
+        matchedProceeds: 0,
+        unmatchedProceeds: 0,
+        holdWeight: 0,
+        matchedQty: 0,
+        firstTs: t.ts,
+        lastTs: t.ts,
+      };
+      byMint.set(t.mint, p);
+    }
+    p.lastTs = t.ts;
+
+    if (t.side === 'buy') {
+      p.buys++;
+      p.boughtSol += t.sol;
+      p.lots.push({ qty: t.qty, cpu: t.sol / t.qty, ts: t.ts });
+      p.held += t.qty;
+      p.peakHeld = Math.max(p.peakHeld, p.held);
+      continue;
+    }
+
+    p.sells++;
+    p.soldSol += t.sol;
+    const ppu = t.sol / t.qty;
+    let remaining = t.qty;
+    while (remaining > 0 && p.lots.length) {
+      const lot = p.lots[0];
+      const take = Math.min(remaining, lot.qty);
+      p.matchedCost += take * lot.cpu;
+      p.matchedProceeds += take * ppu;
+      p.holdWeight += take * (t.ts - lot.ts);
+      p.matchedQty += take;
+      lot.qty -= take;
+      remaining -= take;
+      if (lot.qty <= 1e-12) p.lots.shift();
+    }
+    p.held = Math.max(0, p.held - (t.qty - remaining));
+    if (remaining > 0) p.unmatchedProceeds += remaining * ppu;
+  }
+
+  return [...byMint.values()].map((p) => {
+    const openCost = p.lots.reduce((sum, lot) => sum + lot.qty * lot.cpu, 0);
+    const realized = p.matchedProceeds - p.matchedCost;
+    const closed = p.matchedQty > 0 && p.held <= p.peakHeld * DUST_FRACTION;
+    return {
+      mint: p.mint,
+      buys: p.buys,
+      sells: p.sells,
+      boughtSol: p.boughtSol,
+      soldSol: p.soldSol,
+      matchedCost: p.matchedCost,
+      realized,
+      roi: p.matchedCost > 0 ? realized / p.matchedCost : null,
+      unmatchedProceeds: p.unmatchedProceeds,
+      openCost,
+      closed,
+      avgHoldSec: p.matchedQty > 0 ? p.holdWeight / p.matchedQty : null,
+      firstTs: p.firstTs,
+      lastTs: p.lastTs,
+    };
+  });
+}
+
+return { buildPositions };
+})());
+// metrics.js
+Object.assign(ENGINE, (() => {
+const { buildPositions } = ENGINE;
+
+const DAY = 86400;
+
+// Bots and MEV wallets look great on raw PnL but can't be copied by a human.
+const BOT_TRADES_PER_DAY = 150;
+const BOT_MEDIAN_HOLD_SEC = 20;
+const MIN_CLOSED_FOR_CONFIDENCE = 10;
+const ONE_HIT_SHARE = 0.8;
+
+function median(values) {
+  if (!values.length) return null;
+  const s = [...values].sort((a, b) => a - b);
+  const mid = s.length >> 1;
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
+function tally(trades, key) {
+  const out = {};
+  for (const t of trades) out[t[key]] = (out[t[key]] || 0) + t.sol;
+  return out;
+}
+
+function analyzeWallet(wallet, trades) {
+  const positions = buildPositions(trades);
+  const closed = positions.filter((p) => p.closed);
+  const realizedPositions = positions.filter((p) => p.matchedCost > 0);
+
+  const realizedPnl = realizedPositions.reduce((s, p) => s + p.realized, 0);
+  const invested = realizedPositions.reduce((s, p) => s + p.matchedCost, 0);
+  const grossWin = realizedPositions.filter((p) => p.realized > 0).reduce((s, p) => s + p.realized, 0);
+  const grossLoss = -realizedPositions.filter((p) => p.realized < 0).reduce((s, p) => s + p.realized, 0);
+  const wins = closed.filter((p) => p.realized > 0).length;
+
+  const best = realizedPositions.reduce((a, p) => (!a || p.realized > a.realized ? p : a), null);
+  const worst = realizedPositions.reduce((a, p) => (!a || p.realized < a.realized ? p : a), null);
+
+  const firstTs = trades.length ? trades[0].ts : null;
+  const lastTs = trades.length ? trades[trades.length - 1].ts : null;
+  const activeDays = new Set(trades.map((t) => Math.floor(t.ts / DAY))).size;
+  const tradesPerDay = activeDays ? trades.length / activeDays : 0;
+  const medianHoldSec = median(closed.map((p) => p.avgHoldSec).filter((v) => v != null));
+
+  const flags = [];
+  if (tradesPerDay > BOT_TRADES_PER_DAY || (medianHoldSec != null && medianHoldSec < BOT_MEDIAN_HOLD_SEC)) flags.push('bot');
+  if (closed.length < MIN_CLOSED_FOR_CONFIDENCE) flags.push('low-sample');
+  if (grossWin > 0 && best && best.realized / grossWin > ONE_HIT_SHARE && realizedPositions.length > 1) flags.push('one-hit');
+
+  const summary = {
+    wallet,
+    trades: trades.length,
+    tokens: positions.length,
+    closedPositions: closed.length,
+    openPositions: positions.length - closed.length,
+    volumeSol: trades.reduce((s, t) => s + t.sol, 0),
+    investedSol: invested,
+    realizedPnlSol: realizedPnl,
+    roi: invested > 0 ? realizedPnl / invested : null,
+    winRate: closed.length ? wins / closed.length : null,
+    profitFactor: grossLoss > 0 ? grossWin / grossLoss : grossWin > 0 ? Infinity : null,
+    medianRoi: median(closed.map((p) => p.roi).filter((v) => v != null)),
+    medianHoldSec,
+    activeDays,
+    tradesPerDay,
+    openCostSol: positions.reduce((s, p) => s + p.openCost, 0),
+    best: best && { mint: best.mint, realized: best.realized, roi: best.roi },
+    worst: worst && { mint: worst.mint, realized: worst.realized, roi: worst.roi },
+    venues: tally(trades, 'venue'),
+    frontends: tally(trades, 'frontend'),
+    firstTs,
+    lastTs,
+    flags,
+  };
+  summary.score = scoreWallet(summary);
+  return { ...summary, positions: positions.sort((a, b) => b.realized - a.realized) };
+}
+
+// 0-100. Rewards size of profit (log-scaled), consistency (win rate, profit factor)
+// and sample size, then discounts patterns a person can't realistically copy.
+function scoreWallet(s) {
+  if (!(s.realizedPnlSol > 0)) return 0;
+  const clamp = (v) => Math.max(0, Math.min(1, v));
+  const pnl = clamp(Math.log10(1 + s.realizedPnlSol) / 3); // 999 SOL caps the term
+  const win = clamp(s.winRate ?? 0);
+  const pf = clamp((Number.isFinite(s.profitFactor) ? s.profitFactor : 5) / 5);
+  const sample = clamp(s.closedPositions / 50);
+  let score = 100 * (0.35 * pnl + 0.25 * win + 0.2 * pf + 0.2 * sample);
+  if (s.flags.includes('bot')) score *= 0.3;
+  if (s.flags.includes('one-hit')) score *= 0.6;
+  return Math.round(score * 10) / 10;
+}
+
+function rankWallets(results) {
+  return [...results].sort((a, b) => b.score - a.score || b.realizedPnlSol - a.realizedPnlSol);
+}
+
+return { analyzeWallet, scoreWallet, rankWallets };
+})());
+// discover.js
+Object.assign(ENGINE, (() => {
+const { extractTrade } = ENGINE;
+
+// Finds wallets that bought several of the given winning tokens, and how early they got in.
+// txsByMint: { mint: heliusTx[] } — the history of each token's mint address.
+function discoverFromMints(txsByMint) {
+  const wallets = new Map();
+  for (const [mint, txs] of Object.entries(txsByMint)) {
+    const buyers = [];
+    const seen = new Set();
+    for (const tx of [...txs].sort((a, b) => a.timestamp - b.timestamp)) {
+      const wallet = tx.feePayer;
+      if (!wallet || seen.has(wallet)) continue;
+      const trade = extractTrade(tx, wallet);
+      if (trade?.side !== 'buy' || trade.mint !== mint) continue;
+      seen.add(wallet);
+      buyers.push({ wallet, ts: trade.ts, sol: trade.sol });
+    }
+    buyers.forEach((b, i) => {
+      let w = wallets.get(b.wallet);
+      if (!w) wallets.set(b.wallet, (w = { wallet: b.wallet, hits: 0, entryPercentiles: [], solIn: 0, mints: [] }));
+      w.hits++;
+      w.entryPercentiles.push(buyers.length > 1 ? i / (buyers.length - 1) : 0);
+      w.solIn += b.sol;
+      w.mints.push(mint);
+    });
+  }
+  return [...wallets.values()]
+    .map((w) => ({
+      wallet: w.wallet,
+      hits: w.hits,
+      avgEntryPercentile: w.entryPercentiles.reduce((a, b) => a + b, 0) / w.entryPercentiles.length,
+      solIn: w.solIn,
+      mints: w.mints,
+    }))
+    .sort((a, b) => b.hits - a.hits || a.avgEntryPercentile - b.avgEntryPercentile);
+}
+
+return { discoverFromMints };
+})());
+// helius.js
+Object.assign(ENGINE, (() => {
+const { mkdir, readFile, writeFile } = {};
+const { join } = {};
+
+const BASE = 'https://api.helius.xyz/v0';
+const CONTINUE_RE = /`before` parameter set to ([1-9A-HJ-NP-Za-km-z]{32,})/;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Thin client for Helius' enhanced transaction history (parsed swaps, balance changes).
+class Helius {
+  constructor({ apiKey, cacheDir = '.cache/helius', fetchImpl = globalThis.fetch, retries = 5 } = {}) {
+    if (!apiKey) throw new Error('HELIUS_API_KEY is required (free key at https://dashboard.helius.dev)');
+    this.apiKey = apiKey;
+    this.cacheDir = cacheDir;
+    this.fetch = fetchImpl;
+    this.retries = retries;
+  }
+
+  // Pages after the newest are immutable, so only those are cached.
+  async page(address, before) {
+    const cacheFile = before && this.cacheDir && join(this.cacheDir, `${address}_${before}.json`);
+    if (cacheFile) {
+      try {
+        return JSON.parse(await readFile(cacheFile, 'utf8'));
+      } catch {}
+    }
+
+    const url = new URL(`${BASE}/addresses/${address}/transactions`);
+    url.searchParams.set('api-key', this.apiKey);
+    url.searchParams.set('limit', '100');
+    if (before) url.searchParams.set('before', before);
+
+    for (let attempt = 0; ; attempt++) {
+      const res = await this.fetch(url);
+      if (res.ok) {
+        const result = { txs: await res.json() };
+        if (cacheFile) {
+          await mkdir(this.cacheDir, { recursive: true });
+          await writeFile(cacheFile, JSON.stringify(result));
+        }
+        return result;
+      }
+      const body = await res.text();
+      // Sparse histories make Helius stop early and hand back a cursor to keep going.
+      const cont = body.match(CONTINUE_RE);
+      if (cont) return { txs: [], continueBefore: cont[1] };
+      if ((res.status === 429 || res.status >= 500) && attempt < this.retries) {
+        await sleep(500 * 2 ** attempt);
+        continue;
+      }
+      throw new Error(`Helius ${res.status} for ${address}: ${body.slice(0, 200)}`);
+    }
+  }
+
+  async *history(address, { sinceTs = 0, maxPages = 50 } = {}) {
+    let before;
+    for (let pageNo = 0; pageNo < maxPages; pageNo++) {
+      const { txs, continueBefore } = await this.page(address, before);
+      if (continueBefore) {
+        before = continueBefore;
+        continue;
+      }
+      if (!txs.length) return;
+      for (const tx of txs) {
+        if (tx.timestamp < sinceTs) return;
+        yield tx;
+      }
+      before = txs[txs.length - 1].signature;
+    }
+  }
+
+  async collect(address, opts) {
+    const out = [];
+    for await (const tx of this.history(address, opts)) out.push(tx);
+    return out;
+  }
+}
+
+async function mapPool(items, concurrency, fn) {
+  const results = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+  return results;
+}
+
+return { Helius, mapPool };
+})());
+// demo.js
+Object.assign(ENGINE, (() => {
+// Synthetic trade data for previewing the dashboard without an API key.
+// Every address is prefixed "DEMo" so it can't be mistaken for a real wallet.
+
+const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+function rng(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const ARCHETYPES = [
+  { name: 'swing', count: 8, tokens: [30, 80], size: [0.5, 4], winP: 0.55, win: [0.3, 4], loss: [-0.7, -0.15], hold: [600, 86400], parts: 2 },
+  { name: 'sniper-bot', count: 4, tokens: [300, 900], size: [0.2, 1.5], winP: 0.6, win: [0.05, 0.6], loss: [-0.4, -0.05], hold: [2, 15], parts: 1 },
+  { name: 'gambler', count: 6, tokens: [15, 40], size: [1, 10], winP: 0.15, win: [0.5, 3], loss: [-0.95, -0.4], hold: [300, 20000], parts: 1, jackpot: true },
+  { name: 'degen-loser', count: 8, tokens: [20, 120], size: [0.2, 3], winP: 0.3, win: [0.1, 1.5], loss: [-0.9, -0.3], hold: [120, 7200], parts: 1 },
+  { name: 'whale', count: 4, tokens: [10, 30], size: [20, 80], winP: 0.5, win: [0.2, 1.5], loss: [-0.5, -0.1], hold: [3600, 7 * 86400], parts: 3 },
+];
+
+function generateDemo({ days = 90, seed = 7, now = Math.floor(Date.now() / 1000) } = {}) {
+  const r = rng(seed);
+  const between = ([a, b]) => a + r() * (b - a);
+  const id = (prefix, suffix = '') => prefix + Array.from({ length: 40 - prefix.length - suffix.length }, () => B58[Math.floor(r() * B58.length)]).join('') + suffix;
+  const pick = (weights) => {
+    let x = r() * weights.reduce((s, [, w]) => s + w, 0);
+    for (const [v, w] of weights) if ((x -= w) <= 0) return v;
+    return weights[0][0];
+  };
+  const start = now - days * 86400;
+  const mints = Array.from({ length: 400 }, () => id('DEMo', 'pump'));
+  const wallets = [];
+
+  for (const a of ARCHETYPES) {
+    for (let n = 0; n < a.count; n++) {
+      const wallet = id('DEMo');
+      const frontend = pick([['phantom', 4], ['fomo', 3], ['direct', 3]]);
+      const trades = [];
+      const tokenCount = Math.round(between(a.tokens));
+      for (let k = 0; k < tokenCount; k++) {
+        const mint = mints[Math.floor(r() * mints.length)];
+        const ts = Math.floor(start + r() * (days * 86400 - 86400));
+        const size = between(a.size);
+        const qty = size * 1e6 * between([0.5, 2]);
+        let roi = r() < a.winP ? between(a.win) : between(a.loss);
+        if (a.jackpot && r() < 0.04) roi = between([20, 80]);
+        const venue = pick([['pumpfun', 7], ['jupiter', 2], ['raydium', 1]]);
+        const fe = r() < 0.85 ? frontend : 'direct';
+        const sig = () => id('DEMo');
+        trades.push({ signature: sig(), ts, side: 'buy', mint, qty, sol: size, venue, frontend: fe });
+        // Leave ~10% of positions open to exercise open-position handling.
+        if (r() < 0.1) continue;
+        let left = qty;
+        let t = ts;
+        for (let p = 0; p < a.parts; p++) {
+          const last = p === a.parts - 1;
+          const q = last ? left : left * between([0.3, 0.6]);
+          left -= q;
+          t += Math.floor(between(a.hold) / a.parts);
+          trades.push({ signature: sig(), ts: t, side: 'sell', mint, qty: q, sol: (q / qty) * size * (1 + roi), venue, frontend: fe });
+        }
+      }
+      wallets.push({ wallet, archetype: a.name, trades: trades.sort((x, y) => x.ts - y.ts) });
+    }
+  }
+  return wallets;
+}
+
+return { generateDemo };
+})());
+// zip.js
+Object.assign(ENGINE, (() => {
+// Minimal ZIP writer (stored entries, no compression). Runs in Node and the browser,
+// so the CLI and the app's own "Download app" button produce the same archive.
+
+const CRC_TABLE = new Uint32Array(256).map((_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c;
+});
+
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+// files: [{ name, data: string | Uint8Array }]; names use forward slashes.
+function createZip(files, date = new Date()) {
+  const enc = new TextEncoder();
+  const dosTime = (date.getHours() << 11) | (date.getMinutes() << 5) | (date.getSeconds() >> 1);
+  const dosDate = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+  const locals = [];
+  const centrals = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const name = enc.encode(file.name);
+    const data = typeof file.data === 'string' ? enc.encode(file.data) : file.data;
+    const crc = crc32(data);
+
+    const local = new DataView(new ArrayBuffer(30));
+    local.setUint32(0, 0x04034b50, true);
+    local.setUint16(4, 20, true); // version needed
+    local.setUint16(6, 0x0800, true); // UTF-8 names
+    local.setUint16(8, 0, true); // stored
+    local.setUint16(10, dosTime, true);
+    local.setUint16(12, dosDate, true);
+    local.setUint32(14, crc, true);
+    local.setUint32(18, data.length, true);
+    local.setUint32(22, data.length, true);
+    local.setUint16(26, name.length, true);
+    locals.push(new Uint8Array(local.buffer), name, data);
+
+    const central = new DataView(new ArrayBuffer(46));
+    central.setUint32(0, 0x02014b50, true);
+    central.setUint16(4, 0x031e, true); // made by: Unix, spec 3.0
+    central.setUint16(6, 20, true);
+    central.setUint16(8, 0x0800, true);
+    central.setUint16(10, 0, true);
+    central.setUint16(12, dosTime, true);
+    central.setUint16(14, dosDate, true);
+    central.setUint32(16, crc, true);
+    central.setUint32(20, data.length, true);
+    central.setUint32(24, data.length, true);
+    central.setUint16(28, name.length, true);
+    central.setUint32(38, (0o100644 << 16) >>> 0, true); // regular file, rw-r--r--
+    central.setUint32(42, offset, true);
+    centrals.push(new Uint8Array(central.buffer), name);
+
+    offset += 30 + name.length + data.length;
+  }
+
+  const centralSize = centrals.reduce((s, b) => s + b.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, centralSize, true);
+  end.setUint32(16, offset, true);
+
+  const parts = [...locals, ...centrals, new Uint8Array(end.buffer)];
+  const out = new Uint8Array(parts.reduce((s, b) => s + b.length, 0));
+  let pos = 0;
+  for (const p of parts) {
+    out.set(p, pos);
+    pos += p.length;
+  }
+  return out;
+}
+
+const HOW_TO_OPEN = `Wallet Scout
+============
+
+Wallet Scout runs in your web browser. There is nothing to install.
+
+WINDOWS
+1. Right-click WalletScout.zip and choose "Extract All...", then click Extract.
+2. Open the extracted Wallet Scout folder and double-click Wallet Scout.html.
+3. If Windows asks how to open it, choose Microsoft Edge or Google Chrome.
+Tip: right-click Wallet Scout.html > Send to > Desktop (create shortcut) for a desktop icon.
+
+MAC
+1. Double-click WalletScout.zip. A Wallet Scout folder appears next to it.
+2. Open the folder and double-click Wallet Scout.html. It opens in Safari or your default browser.
+3. If it opens in a text editor instead, right-click Wallet Scout.html > Open With > Safari (or Chrome).
+Tip: drag Wallet Scout.html to the right side of the Dock for one-click access.
+
+FIRST SCAN
+1. Get a free API key at https://dashboard.helius.dev and paste it into the app.
+2. Pick "Winning tokens" and paste token mint addresses (one per line),
+   or pick "Wallet list" and paste wallets you want to check.
+3. Click Run scan.
+
+The app opens on demo data. Those wallets are made up and are clearly labeled.
+Your API key is saved only in your own browser.
+`;
+
+function buildAppZip(html) {
+  return createZip([
+    { name: 'Wallet Scout/Wallet Scout.html', data: html },
+    { name: 'Wallet Scout/How to open.txt', data: HOW_TO_OPEN.replace(/\n/g, '\r\n') },
+  ]);
+}
+
+return { createZip, HOW_TO_OPEN, buildAppZip };
+})());
+const { Helius, mapPool, extractTrades, analyzeWallet, rankWallets, discoverFromMints, compilePlatforms, generateDemo, buildAppZip } = ENGINE;
+const SOURCE = '<!doctype html>\n' + document.documentElement.outerHTML;
+const PLATFORMS = compilePlatforms({"_comment":"Venues are where the swap executes (on-chain programs). Frontends are the app the trader used, detected by the fee account the app charges. Fill in frontend feeAccounts by opening a known Phantom / Fomo swap on a block explorer and copying the account that receives the app fee.","venues":{"pumpfun":{"label":"Pump.fun","sources":["PUMP_FUN","PUMP_AMM"],"programIds":["6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P","pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA"]},"jupiter":{"label":"Jupiter","sources":["JUPITER"],"programIds":["JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4"]},"raydium":{"label":"Raydium","sources":["RAYDIUM"],"programIds":[]},"meteora":{"label":"Meteora","sources":["METEORA"],"programIds":[]}},"frontends":{"phantom":{"label":"Phantom","feeAccounts":[]},"fomo":{"label":"Fomo","feeAccounts":[]}}});
+let DATA = null;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const sol = (v, d = 2) => v == null ? '–' : (v >= 0 ? '' : '−') + Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: d, minimumFractionDigits: d });
+const pct = (v) => v == null ? '–' : (v * 100).toFixed(0) + '%';
+const num = (v) => v == null ? '–' : v === Infinity || v === 'Infinity' ? '∞' : Number(v).toFixed(2);
+const short = (a) => a.slice(0, 4) + '…' + a.slice(-4);
+const dur = (s) => s == null ? '–' : s < 60 ? Math.round(s) + 's' : s < 3600 ? Math.round(s / 60) + 'm' : s < 86400 ? (s / 3600).toFixed(1) + 'h' : (s / 86400).toFixed(1) + 'd';
+const cls = (v) => v > 0 ? 'pos' : v < 0 ? 'neg' : '';
+const label = (id) => PLATFORMS.labels[id] || DATA.labels?.[id] || id;
+const link = (kind, addr, text) => DATA.demo ? text : '<a href="https://solscan.io/' + kind + '/' + esc(addr) + '" target="_blank" rel="noopener">' + text + '</a>';
+const KEY_STORE = 'walletScout.heliusKey';
+const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+// ---------- file saving: the Claude viewer's downloads capability when present, a plain download otherwise ----------
+let downloads = null;
+if (window.claude?.use) window.claude.use('downloads').then((d) => (downloads = d)).catch(() => {});
+async function saveFile(filename, data, type) {
+  if (downloads) {
+    try { await downloads.save({ filename, data }); log('Saved ' + filename, 'ok'); }
+    catch (e) { if (e?.code !== 'declined') log('Could not save ' + filename + ': ' + (e?.message || e), 'err'); }
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([data], { type }));
+  a.download = filename; document.body.append(a); a.click(); a.remove();
+}
+
+// ---------- leaderboard ----------
+const COLS = [
+  ['rank', '#', (w) => w.rank],
+  ['wallet', 'Wallet', (w) => w.wallet, (w) => '<span class="mono">' + esc(short(w.wallet)) + '</span>' + w.flags.map((f) => '<span class="flag">' + esc(f) + '</span>').join('')],
+  ['score', 'Score', (w) => w.score, (w) => '<span class="bar" style="width:' + (w.score * 0.4) + 'px"></span> ' + w.score.toFixed(1)],
+  ['realizedPnlSol', 'Realized SOL', (w) => w.realizedPnlSol, (w) => '<span class="' + cls(w.realizedPnlSol) + '">' + sol(w.realizedPnlSol) + '</span>'],
+  ['roi', 'ROI', (w) => w.roi ?? -1e9, (w) => '<span class="' + cls(w.roi) + '">' + pct(w.roi) + '</span>'],
+  ['winRate', 'Win rate', (w) => w.winRate ?? -1, (w) => pct(w.winRate)],
+  ['profitFactor', 'Profit factor', (w) => (w.profitFactor === 'Infinity' || w.profitFactor === Infinity) ? 1e9 : w.profitFactor ?? -1, (w) => num(w.profitFactor)],
+  ['closedPositions', 'Closed', (w) => w.closedPositions],
+  ['trades', 'Trades', (w) => w.trades],
+  ['medianHoldSec', 'Med. hold', (w) => w.medianHoldSec ?? -1, (w) => dur(w.medianHoldSec)],
+  ['volumeSol', 'Volume SOL', (w) => w.volumeSol, (w) => sol(w.volumeSol, 0)],
+];
+let sortKey = 'score', sortDir = -1, selected = null;
+
+function setData(next) {
+  DATA = next;
+  DATA.wallets.forEach((w, i) => (w.rank = i + 1));
+  selected = null; $('detailWrap').hidden = true;
+  const chip = $('modeChip');
+  chip.className = 'chip ' + (DATA.demo ? 'demo' : 'live');
+  chip.textContent = DATA.demo ? 'Demo data' : 'Live · ' + new Date(DATA.generatedAt).toLocaleString();
+  $('banner').innerHTML = DATA.demo ? '<div class="panel note" style="max-width:none"><strong style="color:var(--warn)">Synthetic demo data.</strong> These ' + DATA.wallets.length + ' wallets and their tokens are generated to show how the scout works; none exist on-chain. Run a scan above for real results.</div>' : '';
+  const options = (id, ids) => { $(id).innerHTML = '<option value="">Any</option>' + ids.map((v) => '<option value="' + esc(v) + '">' + esc(label(v)) + '</option>').join(''); };
+  options('venue', [...PLATFORMS.venues.map((v) => v.id), 'other']);
+  options('fe', [...PLATFORMS.frontends.map((f) => f.id), 'direct']);
+  render();
+}
+
+function filtered() {
+  const q = $('q').value.trim(), minWin = +$('minWin').value / 100, fe = $('fe').value, venue = $('venue').value;
+  return DATA.wallets.filter((w) =>
+    (!q || w.wallet.includes(q)) &&
+    !($('hideBots').checked && w.flags.includes('bot')) &&
+    !($('hideLow').checked && w.flags.includes('low-sample')) &&
+    (w.winRate ?? 0) >= minWin &&
+    (!venue || (w.venues[venue] || 0) / (w.volumeSol || 1) >= 0.5) &&
+    (!fe || (w.frontends[fe] || 0) / (w.volumeSol || 1) >= 0.5));
+}
+
+function render() {
+  const col = COLS.find((c) => c[0] === sortKey);
+  const list = filtered().sort((a, b) => { const x = col[2](a), y = col[2](b); return (x > y ? 1 : x < y ? -1 : 0) * sortDir; });
+  $('head').innerHTML = COLS.map((c) => '<th data-k="' + c[0] + '"' + (c[0] === sortKey ? ' data-dir="' + (sortDir > 0 ? '↑' : '↓') + '"' : '') + '>' + c[1] + '</th>').join('');
+  $('rows').innerHTML = list.length
+    ? list.map((w) => '<tr data-w="' + esc(w.wallet) + '"' + (w.wallet === selected ? ' class="sel"' : '') + '>' + COLS.map((c) => '<td>' + (c[3] ? c[3](w) : esc(c[2](w))) + '</td>').join('') + '</tr>').join('')
+    : '<tr><td colspan="' + COLS.length + '" class="empty">No wallets match these filters.</td></tr>';
+  const profitable = list.filter((w) => w.realizedPnlSol > 0);
+  const kpi = (v, l) => '<div class="panel kpi"><div class="v">' + v + '</div><div class="lbl">' + l + '</div></div>';
+  $('kpis').innerHTML = kpi(list.length, 'Wallets shown') + kpi(profitable.length, 'Profitable') +
+    kpi(sol(list.reduce((s, w) => s + w.realizedPnlSol, 0), 0), 'Total realized SOL') +
+    kpi(pct(list.length ? profitable.length / list.length : null), 'Share profitable') +
+    kpi(list[0] ? list[0].score.toFixed(1) : '–', 'Top score');
+}
+
+function mix(obj, total) {
+  return Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
+    '<div><span>' + esc(label(k)) + '</span><span class="track"><span style="width:' + (100 * v / (total || 1)) + '%"></span></span><span style="text-align:right">' + pct(v / (total || 1)) + '</span></div>').join('');
+}
+
+function detail(w) {
+  const row = (p) => '<tr><td class="mono">' + link('token', p.mint, esc(short(p.mint))) + '</td><td>' + (p.closed ? 'closed' : 'open') + '</td><td>' + p.buys + '/' + p.sells + '</td><td>' + sol(p.boughtSol) + '</td><td class="' + cls(p.realized) + '">' + sol(p.realized) + '</td><td class="' + cls(p.roi) + '">' + pct(p.roi) + '</td><td>' + dur(p.avgHoldSec) + '</td></tr>';
+  const el = $('detailWrap');
+  el.hidden = false;
+  el.innerHTML = '<div style="display:grid;gap:16px"><h2>' + link('account', w.wallet, esc(w.wallet)) + (w.archetype ? ' <span class="flag">' + esc(w.archetype) + '</span>' : '') + '</h2>' +
+    '<div class="grid2"><dl>' +
+    '<dt>Score</dt><dd>' + w.score.toFixed(1) + '</dd><dt>Realized PnL</dt><dd class="' + cls(w.realizedPnlSol) + '">' + sol(w.realizedPnlSol) + ' SOL</dd>' +
+    '<dt>Invested (matched)</dt><dd>' + sol(w.investedSol) + ' SOL</dd><dt>Still open (cost)</dt><dd>' + sol(w.openCostSol) + ' SOL</dd>' +
+    '<dt>Median token ROI</dt><dd>' + pct(w.medianRoi) + '</dd><dt>Tokens / closed</dt><dd>' + w.tokens + ' / ' + w.closedPositions + '</dd>' +
+    '<dt>Active days</dt><dd>' + w.activeDays + '</dd><dt>Trades per active day</dt><dd>' + w.tradesPerDay.toFixed(1) + '</dd>' +
+    '<dt>Best token</dt><dd>' + (w.best ? sol(w.best.realized) + ' SOL (' + pct(w.best.roi) + ')' : '–') + '</dd>' +
+    '<dt>Worst token</dt><dd>' + (w.worst ? sol(w.worst.realized) + ' SOL (' + pct(w.worst.roi) + ')' : '–') + '</dd></dl>' +
+    '<div class="mix"><span class="eyebrow">Traded on, by volume</span>' + mix(w.venues, w.volumeSol) + '<br><span class="eyebrow">Placed with, by volume</span>' + mix(w.frontends, w.volumeSol) + '</div></div>' +
+    '<div class="tablewrap"><table><thead><tr><th>Token</th><th>Status</th><th>Buys/Sells</th><th>Bought SOL</th><th>Realized SOL</th><th>ROI</th><th>Avg hold</th></tr></thead><tbody>' +
+    w.positions.slice(0, 60).map(row).join('') + '</tbody></table></div></div>';
+}
+
+$('head').addEventListener('click', (e) => {
+  const k = e.target.closest('th')?.dataset.k; if (!k) return;
+  sortDir = k === sortKey ? -sortDir : (k === 'rank' || k === 'wallet' ? 1 : -1); sortKey = k; render();
+});
+$('rows').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr[data-w]'); if (!tr || e.target.closest('a')) return;
+  selected = tr.dataset.w; render(); detail(DATA.wallets.find((w) => w.wallet === selected));
+  $('detailWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+for (const id of ['q', 'hideBots', 'hideLow', 'minWin', 'venue', 'fe']) $(id).addEventListener('input', render);
+$('csv').addEventListener('click', () => {
+  const head = 'wallet,score,realized_sol,roi,win_rate,closed_positions,flags';
+  const lines = filtered().map((w) => [w.wallet, w.score, w.realizedPnlSol.toFixed(4), w.roi ?? '', w.winRate ?? '', w.closedPositions, w.flags.join('|')].join(','));
+  saveFile('watchlist.csv', head + '\n' + lines.join('\n'), 'text/csv');
+});
+$('json').addEventListener('click', () => saveFile('wallet-scout-results.json', JSON.stringify(DATA, (_, v) => (v === Infinity ? 'Infinity' : v), 2), 'application/json'));
+$('getApp').addEventListener('click', () => saveFile('WalletScout.zip', buildAppZip(SOURCE), 'application/zip'));
+
+// ---------- scanning ----------
+let mode = 'mints';
+function setMode(m) {
+  mode = m;
+  $('modeMints').setAttribute('aria-pressed', m === 'mints');
+  $('modeWallets').setAttribute('aria-pressed', m === 'wallets');
+  $('inputLabel').textContent = m === 'mints' ? 'Token mint addresses, one per line' : 'Wallet addresses, one per line';
+  $('input').placeholder = m === 'mints' ? "e.g. paste the mints of the last 90 days' top Pump.fun runners" : 'e.g. wallets you already follow';
+  $('topField').hidden = m !== 'mints';
+}
+$('modeMints').addEventListener('click', () => setMode('mints'));
+$('modeWallets').addEventListener('click', () => setMode('wallets'));
+
+function log(msg, kind) {
+  const el = $('log');
+  el.insertAdjacentHTML('beforeend', '<div' + (kind ? ' class="' + kind + '"' : '') + '>' + esc(msg) + '</div>');
+  el.scrollTop = el.scrollHeight;
+}
+
+$('key').value = store.get(KEY_STORE) || store.get('jsak.heliusKey') || '';
+$('key').addEventListener('change', () => store.set(KEY_STORE, $('key').value.trim()));
+$('loadDemo').addEventListener('click', () => { setData(buildDemo()); log('Loaded demo data.'); });
+
+function buildDemo() {
+  const days = 90;
+  const wallets = rankWallets(generateDemo({ days }).map(({ wallet, archetype, trades }) => ({ ...analyzeWallet(wallet, trades), archetype })));
+  return { generatedAt: new Date().toISOString(), days, demo: true, labels: PLATFORMS.labels, frontendIds: PLATFORMS.frontends.map((f) => f.id), wallets };
+}
+
+const ADDRESS = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
+$('run').addEventListener('click', async () => {
+  const apiKey = $('key').value.trim();
+  const addrs = [...new Set($('input').value.split(/[\s,]+/).filter(Boolean))];
+  const bad = addrs.filter((a) => !ADDRESS.test(a));
+  if (!apiKey) return log('Add your Helius API key first. A free one is at dashboard.helius.dev.', 'err');
+  if (!addrs.length) return log(mode === 'mints' ? 'Paste at least one token mint address.' : 'Paste at least one wallet address.', 'err');
+  if (bad.length) return log("These don't look like Solana addresses: " + bad.slice(0, 3).join(', '), 'err');
+  store.set(KEY_STORE, apiKey);
+
+  const days = Math.max(1, +$('days').value || 90);
+  const sinceTs = Math.floor(Date.now() / 1000) - days * 86400;
+  const helius = new Helius({ apiKey, cacheDir: null });
+  $('run').disabled = true; $('run').textContent = 'Scanning…';
+  $('log').innerHTML = '';
+  try {
+    let wallets = addrs;
+    if (mode === 'mints') {
+      log('Reading buyers of ' + addrs.length + ' tokens…');
+      const txsByMint = {};
+      await mapPool(addrs, 3, async (mint) => {
+        txsByMint[mint] = await helius.collect(mint, { sinceTs, maxPages: 10 });
+        log(short(mint) + ': ' + txsByMint[mint].length + ' transactions');
+      });
+      const candidates = discoverFromMints(txsByMint);
+      wallets = candidates.slice(0, Math.max(1, +$('top').value || 30)).map((c) => c.wallet);
+      log('Found ' + candidates.length + ' buyers; analyzing the top ' + wallets.length + '.', 'ok');
+    }
+    let done = 0;
+    const results = await mapPool(wallets, 3, async (wallet) => {
+      try {
+        const txs = await helius.collect(wallet, { sinceTs, maxPages: 30 });
+        const r = analyzeWallet(wallet, extractTrades(txs, wallet, PLATFORMS));
+        if (txs.length >= 3000) r.flags.push('truncated');
+        log('[' + ++done + '/' + wallets.length + '] ' + short(wallet) + '  ' + r.trades + ' trades, ' + sol(r.realizedPnlSol) + ' SOL');
+        return r;
+      } catch (e) {
+        log('[' + ++done + '/' + wallets.length + '] ' + short(wallet) + ' failed: ' + e.message, 'err');
+        if (e instanceof TypeError) throw e;
+        return null;
+      }
+    });
+    setData({ generatedAt: new Date().toISOString(), days, labels: PLATFORMS.labels, frontendIds: PLATFORMS.frontends.map((f) => f.id), wallets: rankWallets(results.filter(Boolean)) });
+    log('Done. Ranked ' + DATA.wallets.length + ' wallets.', 'ok');
+  } catch (e) {
+    if (e instanceof TypeError) log("Couldn't reach Helius. Check your connection. Inside Claude's preview outside sites are blocked, so use Download app and open the file in your browser.", 'err');
+    else log(e.message, 'err');
+  } finally {
+    $('run').disabled = false; $('run').textContent = 'Run scan';
+  }
+});
+
+setMode('mints');
+setData(DATA && DATA.wallets ? DATA : buildDemo());
+</script>
+
+</body>
+</html>
