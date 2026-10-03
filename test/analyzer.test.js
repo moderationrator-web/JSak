@@ -7,6 +7,11 @@ import { Helius } from '../src/helius.js';
 import { analyzeWallet } from '../src/metrics.js';
 import { compilePlatforms } from '../src/platforms.js';
 import { buildPositions } from '../src/pnl.js';
+import { buildAppZip, createZip } from '../src/zip.js';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { bundleEngine, renderApp } from '../src/report.js';
 
 const W = 'Wa11et1111111111111111111111111111111111111';
@@ -164,4 +169,15 @@ test('bundled engine runs outside Node modules and matches the CLI', () => {
   const JSAK = new Function(bundleEngine() + '\nreturn JSAK;')();
   const trades = generateDemo({ now: 1_750_000_000 })[0].trades;
   assert.deepEqual(JSAK.analyzeWallet('w', trades), analyzeWallet('w', trades));
+});
+
+test('zip archive extracts with standard tools', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'jsak-'));
+  const html = renderApp(null);
+  writeFileSync(join(dir, 'JSak.zip'), buildAppZip(html));
+  const python = `import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None; z.extractall(sys.argv[2]); print(*z.namelist(), sep='|')`;
+  const names = execFileSync('python3', ['-c', python, join(dir, 'JSak.zip'), dir], { encoding: 'utf8' }).trim();
+  assert.equal(names, 'JSak/JSak.html|JSak/How to open.txt');
+  assert.equal(readFileSync(join(dir, 'JSak', 'JSak.html'), 'utf8'), html);
+  assert.equal(createZip([]).length, 22);
 });

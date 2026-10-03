@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { discoverFromMints } from './discover.js';
@@ -10,6 +10,7 @@ import { Helius, mapPool } from './helius.js';
 import { analyzeWallet, rankWallets } from './metrics.js';
 import { compilePlatforms } from './platforms.js';
 import { renderApp, renderReport } from './report.js';
+import { buildAppZip } from './zip.js';
 
 const USAGE = `jsak — rank Solana memecoin wallets by realized performance
 
@@ -21,7 +22,7 @@ Usage:
       Pull each wallet's swaps, compute FIFO PnL, score and rank. <file> is a
       newline list of addresses or the candidates.json written by discover.
   jsak report --in data/analysis.json [--out data/report.html]
-  jsak app [--out data/jsak.html]
+  jsak app [--out data/jsak.html]   (also writes JSak.zip next to it)
       Build the standalone app: open it in a browser, paste a Helius key and
       wallets or winning tokens, and it runs the scan itself. Opens on demo data.
 
@@ -90,7 +91,10 @@ async function main() {
 
   if (cmd === 'app' || cmd === 'demo') {
     // With no embedded results the app builds its demo data on open.
-    await write(values.out || 'data/jsak.html', renderApp(null));
+    const out = values.out || 'data/jsak.html';
+    const html = renderApp(null);
+    await write(out, html);
+    await write(join(dirname(out), 'JSak.zip'), buildAppZip(html));
     return;
   }
 

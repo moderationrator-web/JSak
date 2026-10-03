@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const here = (f) => fileURLToPath(new URL(f, import.meta.url));
 
 // Dependency order: each module may only use names exported by the ones before it.
-const ENGINE_MODULES = ['platforms.js', 'extract.js', 'pnl.js', 'metrics.js', 'discover.js', 'helius.js', 'demo.js'];
+const ENGINE_MODULES = ['platforms.js', 'extract.js', 'pnl.js', 'metrics.js', 'discover.js', 'helius.js', 'demo.js', 'zip.js'];
 
 // Wraps each ES module in its own scope and publishes its exports on a shared JSAK object.
 // Node built-in imports become empty bindings; they're only reached on CLI-only paths.

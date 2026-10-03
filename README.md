@@ -4,15 +4,24 @@
 
 Data comes from the [Helius](https://dashboard.helius.dev) enhanced-transactions API (a free key is enough to start).
 
+## Download
+
+**[⬇ Download JSak.zip](dist/JSak.zip)** for Windows or Mac. On that page, click the download button (top right).
+
+- **Windows:** right-click `JSak.zip` and choose **Extract All**, then double-click `JSak.html` in the extracted folder.
+- **Mac:** double-click `JSak.zip`, then double-click `JSak.html` in the new JSak folder.
+
+It opens in your web browser. There's nothing to install, and the zip includes a `How to open.txt` guide.
+
 ## The app
 
-`dist/jsak.html` is the whole tool in one file. Download it, double-click to open it in your browser, and:
+`JSak.html` (also at `dist/jsak.html`) is the whole tool in one file. Open it, then:
 
 1. Pick **Winning tokens** (paste the mints of top Pump.fun runners) or **Wallet list**.
 2. Paste your Helius API key. It's saved only in that browser.
 3. Click **Run scan**. It finds the buyers, pulls each wallet's history, and ranks them.
 
-It opens on synthetic demo data so you can explore first. Results export as a CSV watchlist or JSON. Rebuild it with `npm run app`.
+It opens on synthetic demo data so you can explore first. Results export as a CSV watchlist or JSON. Rebuild the app and the zip with `npm run app`.
 
 ## Command line
 

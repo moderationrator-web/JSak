@@ -112,13 +112,13 @@ a { color: var(--accent); }
         <div class="field" id="topField"><label for="top">Wallets to analyze</label><input type="number" id="top" value="30" min="1" max="500"></div>
         <button type="button" class="btn primary" id="run">Run scan</button>
       </div>
-      <p class="note">Your key is saved only in this browser. Scans call the Helius API directly from this page, so run the downloaded app file in a normal browser tab; previews inside Claude can't reach outside sites.</p>
+      <p class="note">Your key is saved only in this browser. Scans call the Helius API directly from this page, so download the app, unzip it and open JSak.html in your browser; previews inside Claude can't reach outside sites.</p>
     </div>
     <div style="display:grid;gap:8px;align-content:start;min-width:0">
       <span class="eyebrow">Progress</span>
       <div class="log" id="log" aria-live="polite"><div>Paste token mints or wallets, add your key, then Run scan. Progress shows here.</div></div>
       <div class="row">
-        <button type="button" class="btn" id="getApp">Download app</button>
+        <button type="button" class="btn" id="getApp">Download app (.zip)</button>
         <button type="button" class="btn" id="loadDemo">Load demo data</button>
       </div>
     </div>
@@ -143,7 +143,7 @@ a { color: var(--accent); }
 
 <script type="module">
 __ENGINE__
-const { Helius, mapPool, extractTrades, analyzeWallet, rankWallets, discoverFromMints, compilePlatforms, generateDemo } = JSAK;
+const { Helius, mapPool, extractTrades, analyzeWallet, rankWallets, discoverFromMints, compilePlatforms, generateDemo, buildAppZip } = JSAK;
 const SOURCE = '<!doctype html>\n' + document.documentElement.outerHTML;
 const PLATFORMS = compilePlatforms(__PLATFORMS__);
 let DATA = __DATA__;
@@ -163,14 +163,14 @@ const store = { get: (k) => { try { return localStorage.getItem(k); } catch { re
 // ---------- file saving: the Claude viewer's downloads capability when present, a plain download otherwise ----------
 let downloads = null;
 if (window.claude?.use) window.claude.use('downloads').then((d) => (downloads = d)).catch(() => {});
-async function saveFile(filename, text, type) {
+async function saveFile(filename, data, type) {
   if (downloads) {
-    try { await downloads.save({ filename, data: text }); log('Saved ' + filename, 'ok'); }
+    try { await downloads.save({ filename, data }); log('Saved ' + filename, 'ok'); }
     catch (e) { if (e?.code !== 'declined') log('Could not save ' + filename + ': ' + (e?.message || e), 'err'); }
     return;
   }
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.href = URL.createObjectURL(new Blob([data], { type }));
   a.download = filename; document.body.append(a); a.click(); a.remove();
 }
 
@@ -266,7 +266,7 @@ $('csv').addEventListener('click', () => {
   saveFile('watchlist.csv', head + '\n' + lines.join('\n'), 'text/csv');
 });
 $('json').addEventListener('click', () => saveFile('jsak-results.json', JSON.stringify(DATA, (_, v) => (v === Infinity ? 'Infinity' : v), 2), 'application/json'));
-$('getApp').addEventListener('click', () => saveFile('jsak.html', SOURCE, 'text/html'));
+$('getApp').addEventListener('click', () => saveFile('JSak.zip', buildAppZip(SOURCE), 'application/zip'));
 
 // ---------- scanning ----------
 let mode = 'mints';
