@@ -10,7 +10,11 @@ export function compilePlatforms(raw) {
     label: f.label || id,
     feeAccounts: new Set(f.feeAccounts || []),
   }));
-  const labels = Object.fromEntries([...venues, ...frontends].map((p) => [p.id, p.label]));
+  const labels = {
+    ...Object.fromEntries([...venues, ...frontends].map((p) => [p.id, p.label])),
+    other: 'Other exchange',
+    direct: 'Other wallet / no app',
+  };
   return { venues, frontends, labels };
 }
 
