@@ -88,8 +88,8 @@ a { color: var(--accent); }
 
 <main>
   <header>
-    <h1>JS<span>ak</span></h1>
-    <span class="sub">Pump.fun · Fomo · Phantom wallet scout</span>
+    <h1>Wallet <span>Scout</span></h1>
+    <span class="sub">Find the best Pump.fun, Fomo and Phantom traders</span>
     <span id="modeChip" class="chip"></span>
   </header>
 
@@ -112,7 +112,7 @@ a { color: var(--accent); }
         <div class="field" id="topField"><label for="top">Wallets to analyze</label><input type="number" id="top" value="30" min="1" max="500"></div>
         <button type="button" class="btn primary" id="run">Run scan</button>
       </div>
-      <p class="note">Your key is saved only in this browser. Scans call the Helius API directly from this page, so download the app, unzip it and open JSak.html in your browser; previews inside Claude can't reach outside sites.</p>
+      <p class="note">Your key is saved only in this browser. Scans call the Helius API directly from this page, so download the app, unzip it and open Wallet Scout.html in your browser; previews inside Claude can't reach outside sites.</p>
     </div>
     <div style="display:grid;gap:8px;align-content:start;min-width:0">
       <span class="eyebrow">Progress</span>
@@ -143,7 +143,7 @@ a { color: var(--accent); }
 
 <script type="module">
 __ENGINE__
-const { Helius, mapPool, extractTrades, analyzeWallet, rankWallets, discoverFromMints, compilePlatforms, generateDemo, buildAppZip } = JSAK;
+const { Helius, mapPool, extractTrades, analyzeWallet, rankWallets, discoverFromMints, compilePlatforms, generateDemo, buildAppZip } = ENGINE;
 const SOURCE = '<!doctype html>\n' + document.documentElement.outerHTML;
 const PLATFORMS = compilePlatforms(__PLATFORMS__);
 let DATA = __DATA__;
@@ -158,6 +158,7 @@ const dur = (s) => s == null ? '–' : s < 60 ? Math.round(s) + 's' : s < 3600 ?
 const cls = (v) => v > 0 ? 'pos' : v < 0 ? 'neg' : '';
 const label = (id) => DATA.labels[id] || id;
 const link = (kind, addr, text) => DATA.demo ? text : '<a href="https://solscan.io/' + kind + '/' + esc(addr) + '" target="_blank" rel="noopener">' + text + '</a>';
+const KEY_STORE = 'walletScout.heliusKey';
 const store = { get: (k) => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
 
 // ---------- file saving: the Claude viewer's downloads capability when present, a plain download otherwise ----------
@@ -265,8 +266,8 @@ $('csv').addEventListener('click', () => {
   const lines = filtered().map((w) => [w.wallet, w.score, w.realizedPnlSol.toFixed(4), w.roi ?? '', w.winRate ?? '', w.closedPositions, w.flags.join('|')].join(','));
   saveFile('watchlist.csv', head + '\n' + lines.join('\n'), 'text/csv');
 });
-$('json').addEventListener('click', () => saveFile('jsak-results.json', JSON.stringify(DATA, (_, v) => (v === Infinity ? 'Infinity' : v), 2), 'application/json'));
-$('getApp').addEventListener('click', () => saveFile('JSak.zip', buildAppZip(SOURCE), 'application/zip'));
+$('json').addEventListener('click', () => saveFile('wallet-scout-results.json', JSON.stringify(DATA, (_, v) => (v === Infinity ? 'Infinity' : v), 2), 'application/json'));
+$('getApp').addEventListener('click', () => saveFile('WalletScout.zip', buildAppZip(SOURCE), 'application/zip'));
 
 // ---------- scanning ----------
 let mode = 'mints';
@@ -287,8 +288,8 @@ function log(msg, kind) {
   el.scrollTop = el.scrollHeight;
 }
 
-$('key').value = store.get('jsak.heliusKey') || '';
-$('key').addEventListener('change', () => store.set('jsak.heliusKey', $('key').value.trim()));
+$('key').value = store.get(KEY_STORE) || store.get('jsak.heliusKey') || '';
+$('key').addEventListener('change', () => store.set(KEY_STORE, $('key').value.trim()));
 $('loadDemo').addEventListener('click', () => { setData(buildDemo()); log('Loaded demo data.'); });
 
 function buildDemo() {
@@ -305,7 +306,7 @@ $('run').addEventListener('click', async () => {
   if (!apiKey) return log('Add your Helius API key first. A free one is at dashboard.helius.dev.', 'err');
   if (!addrs.length) return log(mode === 'mints' ? 'Paste at least one token mint address.' : 'Paste at least one wallet address.', 'err');
   if (bad.length) return log("These don't look like Solana addresses: " + bad.slice(0, 3).join(', '), 'err');
-  store.set('jsak.heliusKey', apiKey);
+  store.set(KEY_STORE, apiKey);
 
   const days = Math.max(1, +$('days').value || 90);
   const sinceTs = Math.floor(Date.now() / 1000) - days * 86400;

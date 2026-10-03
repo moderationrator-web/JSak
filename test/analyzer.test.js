@@ -166,18 +166,18 @@ test('demo data renders into a self-contained report', () => {
 });
 
 test('bundled engine runs outside Node modules and matches the CLI', () => {
-  const JSAK = new Function(bundleEngine() + '\nreturn JSAK;')();
+  const ENGINE = new Function(bundleEngine() + '\nreturn ENGINE;')();
   const trades = generateDemo({ now: 1_750_000_000 })[0].trades;
-  assert.deepEqual(JSAK.analyzeWallet('w', trades), analyzeWallet('w', trades));
+  assert.deepEqual(ENGINE.analyzeWallet('w', trades), analyzeWallet('w', trades));
 });
 
 test('zip archive extracts with standard tools', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'jsak-'));
+  const dir = mkdtempSync(join(tmpdir(), 'wallet-scout-'));
   const html = renderApp(null);
-  writeFileSync(join(dir, 'JSak.zip'), buildAppZip(html));
+  writeFileSync(join(dir, 'WalletScout.zip'), buildAppZip(html));
   const python = `import zipfile,sys; z=zipfile.ZipFile(sys.argv[1]); assert z.testzip() is None; z.extractall(sys.argv[2]); print(*z.namelist(), sep='|')`;
-  const names = execFileSync('python3', ['-c', python, join(dir, 'JSak.zip'), dir], { encoding: 'utf8' }).trim();
-  assert.equal(names, 'JSak/JSak.html|JSak/How to open.txt');
-  assert.equal(readFileSync(join(dir, 'JSak', 'JSak.html'), 'utf8'), html);
+  const names = execFileSync('python3', ['-c', python, join(dir, 'WalletScout.zip'), dir], { encoding: 'utf8' }).trim();
+  assert.equal(names, 'Wallet Scout/Wallet Scout.html|Wallet Scout/How to open.txt');
+  assert.equal(readFileSync(join(dir, 'Wallet Scout', 'Wallet Scout.html'), 'utf8'), html);
   assert.equal(createZip([]).length, 22);
 });

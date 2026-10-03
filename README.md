@@ -1,21 +1,21 @@
-# JSak
+# Wallet Scout
 
-`jsak` ranks Solana memecoin traders (Pump.fun, Fomo, Phantom) by **realized** performance over a lookback window (default 90 days). It produces a sortable HTML leaderboard and a CSV watchlist you can copy-trade or monitor.
+Wallet Scout ranks Solana memecoin traders (Pump.fun, Fomo, Phantom) by **realized** performance over a lookback window (default 90 days). It produces a sortable HTML leaderboard and a CSV watchlist you can copy-trade or monitor.
 
 Data comes from the [Helius](https://dashboard.helius.dev) enhanced-transactions API (a free key is enough to start).
 
 ## Download
 
-**[⬇ Download JSak.zip](dist/JSak.zip)** for Windows or Mac. On that page, click the download button (top right).
+**[⬇ Download WalletScout.zip](https://github.com/moderationrator-web/JSak/raw/main/dist/WalletScout.zip)** for Windows or Mac. The download starts straight away.
 
-- **Windows:** right-click `JSak.zip` and choose **Extract All**, then double-click `JSak.html` in the extracted folder.
-- **Mac:** double-click `JSak.zip`, then double-click `JSak.html` in the new JSak folder.
+- **Windows:** right-click `WalletScout.zip` and choose **Extract All**, then double-click `Wallet Scout.html` in the extracted folder.
+- **Mac:** double-click `WalletScout.zip`, then double-click `Wallet Scout.html` in the new Wallet Scout folder.
 
 It opens in your web browser. There's nothing to install, and the zip includes a `How to open.txt` guide.
 
 ## The app
 
-`JSak.html` (also at `dist/jsak.html`) is the whole tool in one file. Open it, then:
+`Wallet Scout.html` (also at `dist/wallet-scout.html`) is the whole tool in one file. Open it, then:
 
 1. Pick **Winning tokens** (paste the mints of top Pump.fun runners) or **Wallet list**.
 2. Paste your Helius API key. It's saved only in that browser.

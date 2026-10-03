@@ -77,22 +77,22 @@ export function createZip(files, date = new Date()) {
   return out;
 }
 
-export const HOW_TO_OPEN = `JSak Wallet Scout
-=================
+export const HOW_TO_OPEN = `Wallet Scout
+============
 
-JSak runs in your web browser. There is nothing to install.
+Wallet Scout runs in your web browser. There is nothing to install.
 
 WINDOWS
-1. Right-click JSak.zip and choose "Extract All...", then click Extract.
-2. Open the extracted JSak folder and double-click JSak.html.
+1. Right-click WalletScout.zip and choose "Extract All...", then click Extract.
+2. Open the extracted Wallet Scout folder and double-click Wallet Scout.html.
 3. If Windows asks how to open it, choose Microsoft Edge or Google Chrome.
-Tip: right-click JSak.html > Send to > Desktop (create shortcut) for a desktop icon.
+Tip: right-click Wallet Scout.html > Send to > Desktop (create shortcut) for a desktop icon.
 
 MAC
-1. Double-click JSak.zip. A JSak folder appears next to it.
-2. Open the folder and double-click JSak.html. It opens in Safari or your default browser.
-3. If it opens in a text editor instead, right-click JSak.html > Open With > Safari (or Chrome).
-Tip: drag JSak.html to the right side of the Dock for one-click access.
+1. Double-click WalletScout.zip. A Wallet Scout folder appears next to it.
+2. Open the folder and double-click Wallet Scout.html. It opens in Safari or your default browser.
+3. If it opens in a text editor instead, right-click Wallet Scout.html > Open With > Safari (or Chrome).
+Tip: drag Wallet Scout.html to the right side of the Dock for one-click access.
 
 FIRST SCAN
 1. Get a free API key at https://dashboard.helius.dev and paste it into the app.
@@ -106,7 +106,7 @@ Your API key is saved only in your own browser.
 
 export function buildAppZip(html) {
   return createZip([
-    { name: 'JSak/JSak.html', data: html },
-    { name: 'JSak/How to open.txt', data: HOW_TO_OPEN.replace(/\n/g, '\r\n') },
+    { name: 'Wallet Scout/Wallet Scout.html', data: html },
+    { name: 'Wallet Scout/How to open.txt', data: HOW_TO_OPEN.replace(/\n/g, '\r\n') },
   ]);
 }

@@ -217,5 +217,5 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# jsak output (API pulls, rankings)
+# wallet-scout output (API pulls, rankings)
 data/

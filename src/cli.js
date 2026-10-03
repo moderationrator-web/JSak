@@ -12,17 +12,17 @@ import { compilePlatforms } from './platforms.js';
 import { renderApp, renderReport } from './report.js';
 import { buildAppZip } from './zip.js';
 
-const USAGE = `jsak — rank Solana memecoin wallets by realized performance
+const USAGE = `wallet-scout — rank Solana memecoin wallets by realized performance
 
 Usage:
-  jsak discover --mints <file> [--days 90] [--max-pages 10] [--top 200] [--out data/candidates.json]
+  wallet-scout discover --mints <file> [--days 90] [--max-pages 10] [--top 200] [--out data/candidates.json]
       Find wallets that bought several of the listed winning tokens (one mint per line).
-  jsak analyze --wallets <file> [--days 90] [--max-pages 50] [--concurrency 4]
+  wallet-scout analyze --wallets <file> [--days 90] [--max-pages 50] [--concurrency 4]
                [--out data/analysis.json] [--html data/report.html]
       Pull each wallet's swaps, compute FIFO PnL, score and rank. <file> is a
       newline list of addresses or the candidates.json written by discover.
-  jsak report --in data/analysis.json [--out data/report.html]
-  jsak app [--out data/jsak.html]   (also writes JSak.zip next to it)
+  wallet-scout report --in data/analysis.json [--out data/report.html]
+  wallet-scout app [--out data/wallet-scout.html]   (also writes WalletScout.zip next to it)
       Build the standalone app: open it in a browser, paste a Helius key and
       wallets or winning tokens, and it runs the scan itself. Opens on demo data.
 
@@ -91,10 +91,10 @@ async function main() {
 
   if (cmd === 'app' || cmd === 'demo') {
     // With no embedded results the app builds its demo data on open.
-    const out = values.out || 'data/jsak.html';
+    const out = values.out || 'data/wallet-scout.html';
     const html = renderApp(null);
     await write(out, html);
-    await write(join(dirname(out), 'JSak.zip'), buildAppZip(html));
+    await write(join(dirname(out), 'WalletScout.zip'), buildAppZip(html));
     return;
   }
 

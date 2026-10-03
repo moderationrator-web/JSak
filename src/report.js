@@ -1,4 +1,4 @@
-// Builds the single-file JSak app: the UI in app.html plus the analysis engine
+// Builds the single-file Wallet Scout app: the UI in app.html plus the analysis engine
 // (the same modules the CLI uses), inlined so the file works offline and from file://.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -8,22 +8,22 @@ const here = (f) => fileURLToPath(new URL(f, import.meta.url));
 // Dependency order: each module may only use names exported by the ones before it.
 const ENGINE_MODULES = ['platforms.js', 'extract.js', 'pnl.js', 'metrics.js', 'discover.js', 'helius.js', 'demo.js', 'zip.js'];
 
-// Wraps each ES module in its own scope and publishes its exports on a shared JSAK object.
+// Wraps each ES module in its own scope and publishes its exports on a shared ENGINE object.
 // Node built-in imports become empty bindings; they're only reached on CLI-only paths.
 export function bundleEngine() {
   const parts = ENGINE_MODULES.map((file) => {
     const exported = [];
     const body = readFileSync(here(file), 'utf8')
       .replace(/^import \{([^}]*)\} from '([^']+)';$/gm, (_, names, from) =>
-        from.startsWith('node:') ? `const {${names}} = {};` : `const {${names}} = JSAK;`)
+        from.startsWith('node:') ? `const {${names}} = {};` : `const {${names}} = ENGINE;`)
       .replace(/^export (async function\*?|function\*?|class|const|let) (\w+)/gm, (_, kind, name) => {
         exported.push(name);
         return `${kind} ${name}`;
       });
     if (/^\s*(import|export)\b/m.test(body)) throw new Error(`${file}: unsupported import/export form`);
-    return `// ${file}\nObject.assign(JSAK, (() => {\n${body}\nreturn { ${exported.join(', ')} };\n})());`;
+    return `// ${file}\nObject.assign(ENGINE, (() => {\n${body}\nreturn { ${exported.join(', ')} };\n})());`;
   });
-  return `const JSAK = {};\n${parts.join('\n')}`;
+  return `const ENGINE = {};\n${parts.join('\n')}`;
 }
 
 // standalone: wrap in a full document for a file people open directly.
@@ -36,7 +36,7 @@ export function renderApp(analysis, { standalone = true } = {}) {
   };
   const platforms = JSON.parse(readFileSync(here('../config/platforms.json'), 'utf8'));
   const page = readFileSync(here('app.html'), 'utf8')
-    .replace('__TITLE__', () => 'JSak Wallet Scout')
+    .replace('__TITLE__', () => 'Wallet Scout')
     .replace('__ENGINE__', () => bundleEngine().replace(/<\/script/gi, '<\\/script'))
     .replace('__PLATFORMS__', () => json(platforms))
     .replace('__DATA__', () => json(slim ?? null));
